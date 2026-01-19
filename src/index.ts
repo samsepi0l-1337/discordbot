@@ -83,6 +83,7 @@ for (const file of fs.readdirSync(commandsPath)) {
 }
 
 async function registerCommandsOnStartup() {
+  if (process.env.NODE_ENV === "test") return;
   const clientId = process.env.CLIENT_ID;
   const guildId = process.env.GUILD_ID;
   const token = process.env.DISCORD_TOKEN;
