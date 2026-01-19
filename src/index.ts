@@ -9,13 +9,7 @@ import {
   type Interaction,
 } from "discord.js";
 import { getConfig } from "./config/guildConfigRepo";
-import {
-  TICKET_CREATE_BUTTON_ID,
-  createTicketChannelTicket,
-  handleTicketCloseButton,
-  handleTicketClaimButton,
-  purgeOldTickets,
-} from "./tickets/ticketService";
+const ticketService = require("./tickets/ticketService");
 
 const DEFAULT_TICKET_RETENTION_DAYS = 30;
 const TICKET_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
@@ -30,7 +24,7 @@ function startTicketCleanup() {
   const retentionMs = getTicketRetentionMs();
   const runCleanup = () => {
     try {
-      const result = purgeOldTickets(retentionMs);
+      const result = ticketService.purgeOldTickets(retentionMs);
       if (result.sessionsDeleted || result.forwardsDeleted) {
         console.log(
           `[ticket-cleanup] sessions=${result.sessionsDeleted}, forwarded=${result.forwardsDeleted}`
@@ -63,14 +57,14 @@ const client = new Client({
   partials: [Partials.Channel, Partials.Message, Partials.Reaction, Partials.User],
 });
 
-client.commands = new Collection();
+const commands = new Collection();
 
 const commandsPath = path.join(__dirname, "commands");
 for (const file of fs.readdirSync(commandsPath)) {
   if (!file.endsWith(".js")) continue;
   const command = require(path.join(commandsPath, file));
   if (!command?.data || !command?.execute) continue;
-  client.commands.set(command.data.name, command);
+  commands.set(command.data.name, command);
 }
 
 const eventsPath = path.join(__dirname, "events");
@@ -83,7 +77,7 @@ for (const file of fs.readdirSync(eventsPath)) {
 
 client.on("interactionCreate", async (interaction: Interaction) => {
   if (interaction.isChatInputCommand()) {
-    const command = client.commands.get(interaction.commandName);
+    const command = commands.get(interaction.commandName);
     if (!command) return;
     try {
       await command.execute(interaction);
@@ -109,10 +103,10 @@ client.on("interactionCreate", async (interaction: Interaction) => {
     return;
   }
 
-  if (interaction.customId === TICKET_CREATE_BUTTON_ID) {
-    const config = getConfig(interaction.guild.id);
+  if (interaction.customId === ticketService.TICKET_CREATE_BUTTON_ID) {
+    const config = getConfig(interaction.guild!.id);
     try {
-      await createTicketChannelTicket(interaction, config);
+      await ticketService.createTicketChannelTicket(interaction, config);
     } catch (error) {
       console.warn("[ticket-create] Failed:", error);
       const message = "티켓 생성에 실패했어요. 권한/설정을 확인해주세요.";
@@ -126,12 +120,12 @@ client.on("interactionCreate", async (interaction: Interaction) => {
   }
 
   if (interaction.customId === "ticket_close") {
-    await handleTicketCloseButton(interaction);
+    await ticketService.handleTicketCloseButton(interaction);
     return;
   }
 
   if (interaction.customId === "ticket_claim" || interaction.customId === "ticket_unclaim") {
-    await handleTicketClaimButton(interaction);
+    await ticketService.handleTicketClaimButton(interaction);
     return;
   }
 });
