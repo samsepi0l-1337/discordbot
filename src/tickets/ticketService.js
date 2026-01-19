@@ -176,25 +176,12 @@ async function createTicketChannelTicket(interaction, config) {
     return;
   }
 
-  const panelMessage =
-    interaction.message ||
-    (panelMessageId
-      ? await panelChannel.messages.fetch(panelMessageId).catch(() => null)
-      : null);
-  if (!panelMessage) {
-    await interaction.reply({
-      content: "티켓 패널 메시지를 찾을 수 없어요. 패널을 다시 게시해주세요.",
-      ephemeral: true,
-    });
-    return;
-  }
-
   const safeName = interaction.user.username
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, "-")
     .slice(0, 20);
   const threadName = `ticket-${safeName || "user"}`;
-  const thread = await panelMessage.startThread({
+  const thread = await panelChannel.threads.create({
     name: threadName,
     type: ChannelType.PrivateThread,
     autoArchiveDuration: 1440,
