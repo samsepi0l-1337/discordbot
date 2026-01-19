@@ -41,6 +41,9 @@ Use `/config` in your server (requires Manage Server permission):
 - On message in grant channel: assigns configured role
 - On message in intro channel: reacts with configured emoji and assigns intro role
 
+## Notes
+- Join-delay timers are in-memory. Pending role assignments are lost on restart.
+
 ## Permissions Checklist
 - Bot permissions:
   - Manage Roles
