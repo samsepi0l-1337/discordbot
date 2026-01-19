@@ -44,4 +44,40 @@ describe("guildConfigRepo", () => {
     expect(cfg.ticket_category_id).toBe("cat1");
     expect(cfg.ticket_transcript_channel_id).toBe("log1");
   });
+
+  test("clearField resets a specific field", () => {
+    const repo = require("../src/config/guildConfigRepo");
+    repo.setIntro("g1", "c1", "r1");
+    expect(repo.getConfig("g1").intro_channel_id).toBe("c1");
+    
+    repo.clearField("g1", "intro_channel");
+    expect(repo.getConfig("g1").intro_channel_id).toBeNull();
+    expect(repo.getConfig("g1").intro_role_id).toBe("r1");
+  });
+
+  test("resetConfig deletes the entire row", () => {
+    const repo = require("../src/config/guildConfigRepo");
+    repo.setIntro("g1", "c1", "r1");
+    repo.resetConfig("g1");
+    expect(repo.getConfig("g1")).toBeNull();
+  });
+
+  test("add/remove command roles and users are idempotent and work correctly", () => {
+    const repo = require("../src/config/guildConfigRepo");
+    repo.addCommandRole("g1", "r1");
+    repo.addCommandRole("g1", "r1"); // Duplicate
+    repo.addCommandRole("g1", "r2");
+    
+    expect(repo.getConfig("g1").command_role_ids).toEqual(["r1", "r2"]);
+    
+    repo.removeCommandRole("g1", "r1");
+    expect(repo.getConfig("g1").command_role_ids).toEqual(["r2"]);
+    
+    repo.addCommandUser("g1", "u1");
+    repo.addCommandUser("g1", "u1");
+    expect(repo.getConfig("g1").command_user_ids).toEqual(["u1"]);
+    
+    repo.removeCommandUser("g1", "u1");
+    expect(repo.getConfig("g1").command_user_ids).toEqual([]);
+  });
 });

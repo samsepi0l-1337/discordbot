@@ -42,6 +42,34 @@ describe("rrRepo", () => {
     expect(rules).toHaveLength(1);
   });
 
+  test("listRulesByMessageEmoji returns only matching rules", () => {
+    const rr = require("../src/config/rrRepo");
+    rr.addRule({ guildId: "g1", messageId: "m1", emojiKey: "u:✅", roleId: "r1", type: "normal" });
+    rr.addRule({ guildId: "g1", messageId: "m1", emojiKey: "u:❌", roleId: "r2", type: "normal" });
+    
+    const rules = rr.listRulesByMessageEmoji("g1", "m1", "u:✅");
+    expect(rules).toHaveLength(1);
+    expect(rules[0].role_id).toBe("r1");
+  });
+
+  test("toggle rules are unique by group", () => {
+    const rr = require("../src/config/rrRepo");
+    rr.addRule({ guildId: "g1", messageId: "m1", emojiKey: "u:1", roleId: "r1", type: "toggle", toggleGroup: "color" });
+    rr.addRule({ guildId: "g1", messageId: "m1", emojiKey: "u:1", roleId: "r1", type: "toggle", toggleGroup: "color" });
+    
+    const rules = rr.listRulesByMessage("g1", "m1");
+    expect(rules).toHaveLength(1);
+  });
+
+  test("deleteRulesByMessage removes all rules for that message", () => {
+    const rr = require("../src/config/rrRepo");
+    rr.addRule({ guildId: "g1", messageId: "m1", emojiKey: "u:1", roleId: "r1", type: "normal" });
+    rr.addRule({ guildId: "g1", messageId: "m1", emojiKey: "u:2", roleId: "r2", type: "normal" });
+    
+    expect(rr.deleteRulesByMessage("g1", "m1")).toBe(2);
+    expect(rr.listRulesByMessage("g1", "m1")).toHaveLength(0);
+  });
+
   test("delete rules by message/emoji/role", () => {
     const rr = require("../src/config/rrRepo");
     rr.addRule({
