@@ -102,6 +102,38 @@ function getForwardedMessage(staffMessageId) {
     .get(staffMessageId);
 }
 
+function purgeOldTickets(retentionMs) {
+  const db = getDb();
+  const cutoff = Date.now() - retentionMs;
+  if (!Number.isFinite(cutoff)) return { sessionsDeleted: 0, forwardsDeleted: 0 };
+  const deleteForwards = db
+    .prepare(
+      `
+      DELETE FROM ticket_forwarded_messages
+      WHERE created_at < ?
+    `
+    )
+    .run(cutoff);
+  const deleteSessions = db
+    .prepare(
+      `
+      DELETE FROM ticket_sessions
+      WHERE updated_at < ?
+    `
+    )
+    .run(cutoff);
+  db.prepare(
+    `
+    DELETE FROM ticket_forwarded_messages
+    WHERE ticket_id NOT IN (SELECT id FROM ticket_sessions)
+  `
+  ).run();
+  return {
+    sessionsDeleted: deleteSessions.changes || 0,
+    forwardsDeleted: deleteForwards.changes || 0,
+  };
+}
+
 module.exports = {
   TICKET_CREATE_BUTTON_ID,
   postTicketPanel,
@@ -112,4 +144,5 @@ module.exports = {
   closeTicketSession,
   storeForwardedMessage,
   getForwardedMessage,
+  purgeOldTickets,
 };

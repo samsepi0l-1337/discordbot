@@ -13,7 +13,35 @@ const {
   TICKET_CREATE_BUTTON_ID,
   createTicketSession,
   closeTicketSession,
+  purgeOldTickets,
 } = require("./tickets/ticketService");
+
+const DEFAULT_TICKET_RETENTION_DAYS = 30;
+const TICKET_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+function getTicketRetentionMs() {
+  const raw = Number.parseInt(process.env.TICKET_RETENTION_DAYS || "", 10);
+  const days = Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_TICKET_RETENTION_DAYS;
+  return days * 24 * 60 * 60 * 1000;
+}
+
+function startTicketCleanup() {
+  const retentionMs = getTicketRetentionMs();
+  const runCleanup = () => {
+    try {
+      const result = purgeOldTickets(retentionMs);
+      if (result.sessionsDeleted || result.forwardsDeleted) {
+        console.log(
+          `[ticket-cleanup] sessions=${result.sessionsDeleted}, forwarded=${result.forwardsDeleted}`
+        );
+      }
+    } catch (error) {
+      console.warn("[ticket-cleanup] Failed:", error);
+    }
+  };
+  runCleanup();
+  setInterval(runCleanup, TICKET_CLEANUP_INTERVAL_MS);
+}
 
 const token = process.env.DISCORD_TOKEN;
 if (!token) {
@@ -120,6 +148,7 @@ client.on("interactionCreate", async (interaction) => {
 
 client.once("ready", () => {
   console.log(`Logged in as ${client.user.tag}`);
+  startTicketCleanup();
 });
 
 client.login(token);
