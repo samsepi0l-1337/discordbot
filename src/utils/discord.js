@@ -108,4 +108,67 @@ async function assignRole(member, roleId, contextLabel) {
   }
 }
 
-module.exports = { assignRole };
+async function removeRole(member, roleId, contextLabel) {
+  if (!roleId) return { ok: false, reason: "no-role-id" };
+
+  let role = member.guild.roles.cache.get(roleId);
+  if (!role) {
+    try {
+      role = await member.guild.roles.fetch(roleId);
+    } catch {
+      role = null;
+    }
+  }
+  if (!role) {
+    console.warn(`[${contextLabel}] Role not found: ${roleId}`);
+    await notifyGuildIssue(
+      member.guild,
+      `설정된 역할을 찾을 수 없어요. 역할 ID: ${roleId} (상황: ${contextLabel})`,
+      `${member.guild.id}:role-not-found:${roleId}:${contextLabel}`
+    );
+    return { ok: false, reason: "role-not-found" };
+  }
+
+  if (!member.roles.cache.has(role.id)) {
+    return { ok: true, reason: "not-has-role" };
+  }
+
+  const botMember = member.guild.members.me
+    ? member.guild.members.me
+    : await member.guild.members.fetchMe();
+
+  if (!botMember.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
+    console.warn(`[${contextLabel}] Missing ManageRoles permission.`);
+    await notifyGuildIssue(
+      member.guild,
+      "봇에 역할 관리 권한(Manage Roles)이 필요해요. 역할 제거에 실패했어요.",
+      `${member.guild.id}:missing-permission:${roleId}:${contextLabel}`
+    );
+    return { ok: false, reason: "missing-permission" };
+  }
+
+  if (role.position >= botMember.roles.highest.position) {
+    console.warn(`[${contextLabel}] Role hierarchy prevents removal.`);
+    await notifyGuildIssue(
+      member.guild,
+      "봇 역할이 제거하려는 역할보다 높아야 해요. 역할 제거에 실패했어요.",
+      `${member.guild.id}:role-hierarchy:${roleId}:${contextLabel}`
+    );
+    return { ok: false, reason: "role-hierarchy" };
+  }
+
+  try {
+    await member.roles.remove(role);
+    return { ok: true, reason: "removed" };
+  } catch (error) {
+    console.warn(`[${contextLabel}] Role remove failed:`, error);
+    await notifyGuildIssue(
+      member.guild,
+      "역할 제거 중 오류가 발생했어요. 권한과 역할 설정을 확인해주세요.",
+      `${member.guild.id}:remove-failed:${roleId}:${contextLabel}`
+    );
+    return { ok: false, reason: "remove-failed" };
+  }
+}
+
+module.exports = { assignRole, removeRole };

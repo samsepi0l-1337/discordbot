@@ -8,7 +8,6 @@ const {
   setJoinDelayMs,
   setBaseRole,
   setIntro,
-  setGrantOnPost,
   setTicketChannel,
   setTicketRecipient,
   addTicketRecipient,
@@ -21,8 +20,6 @@ const {
   resetConfig,
 } = require("../config/guildConfigRepo");
 const { postTicketPanel } = require("../tickets/ticketService");
-
-const EMOJI_ROLE_SPLIT_REGEX = /\s*,\s*/;
 
 function formatRole(id) {
   return id ? `<@&${id}>` : "미설정";
@@ -49,65 +46,6 @@ function formatRoles(ids) {
 function formatUsersList(ids) {
   if (!ids?.length) return "미설정";
   return ids.map((id) => formatUser(id)).join(", ");
-}
-
-function formatGrantOnPostMap(map) {
-  const entries = Object.entries(map || {});
-  if (!entries.length) return "미설정";
-  return entries
-    .map(
-      ([emojiKey, roleId]) => `${formatEmojiKey(emojiKey)} → ${formatRole(roleId)}`
-    )
-    .join(", ");
-}
-
-function formatEmojiKey(key) {
-  if (!key) return "알 수 없음";
-  if (key.startsWith("c:")) return `<:emoji:${key.slice(2)}>`;
-  if (key.startsWith("u:")) return key.slice(2);
-  return key;
-}
-
-function parseEmojiToken(token) {
-  const trimmed = token.trim();
-  if (!trimmed) return null;
-  const customMatch = trimmed.match(/^<a?:\w+:(\d+)>$/);
-  if (customMatch) {
-    return { key: `c:${customMatch[1]}`, raw: trimmed };
-  }
-  return { key: `u:${trimmed}`, raw: trimmed };
-}
-
-function parseRoleToken(token) {
-  const trimmed = token.trim();
-  if (!trimmed) return null;
-  const mentionMatch = trimmed.match(/^<@&(\d+)>$/);
-  if (mentionMatch) return mentionMatch[1];
-  if (/^\d+$/.test(trimmed)) return trimmed;
-  return null;
-}
-
-function parseEmojiRolePairs(emojiInput, roleInput) {
-  const emojiTokens = emojiInput.split(EMOJI_ROLE_SPLIT_REGEX).filter(Boolean);
-  const roleTokens = roleInput.split(EMOJI_ROLE_SPLIT_REGEX).filter(Boolean);
-  if (!emojiTokens.length || !roleTokens.length) {
-    return { error: "이모지와 역할을 1개 이상 입력해주세요." };
-  }
-  if (emojiTokens.length !== roleTokens.length) {
-    return { error: "이모지와 역할의 개수가 같아야 해요." };
-  }
-  const map = {};
-  const emojiList = [];
-  for (let i = 0; i < emojiTokens.length; i += 1) {
-    const emoji = parseEmojiToken(emojiTokens[i]);
-    const roleId = parseRoleToken(roleTokens[i]);
-    if (!emoji || !roleId) {
-      return { error: "이모지 또는 역할 형식이 올바르지 않아요." };
-    }
-    map[emoji.key] = roleId;
-    emojiList.push(emoji.raw);
-  }
-  return { map, emojiList };
 }
 
 function formatSeconds(ms) {
@@ -151,29 +89,6 @@ module.exports = {
         )
         .addRoleOption((option) =>
           option.setName("role").setDescription("역할").setRequired(true)
-        )
-    )
-    .addSubcommand((sub) =>
-      sub
-        .setName("set-grant-on-post")
-        .setDescription("역할 부여 패널 메시지/이모지 설정")
-        .addStringOption((option) =>
-          option
-            .setName("message")
-            .setDescription("표시할 메시지")
-            .setRequired(true)
-        )
-        .addStringOption((option) =>
-          option
-            .setName("emojis")
-            .setDescription("이모지 목록(쉼표로 구분)")
-            .setRequired(true)
-        )
-        .addStringOption((option) =>
-          option
-            .setName("roles")
-            .setDescription("역할 목록(쉼표로 구분, 순서 동일)")
-            .setRequired(true)
         )
     )
     .addSubcommand((sub) =>
@@ -253,9 +168,6 @@ module.exports = {
               { name: "join_delay", value: "join_delay" },
               { name: "intro_channel", value: "intro_channel" },
               { name: "intro_role", value: "intro_role" },
-              { name: "grant_on_post_channel", value: "grant_on_post_channel" },
-              { name: "grant_on_post_message", value: "grant_on_post_message" },
-              { name: "grant_on_post_emojis", value: "grant_on_post_emojis" },
               { name: "ticket_channel", value: "ticket_channel" },
               { name: "ticket_recipient", value: "ticket_recipient" },
               { name: "command_roles", value: "command_roles" },
@@ -276,6 +188,7 @@ module.exports = {
       return;
     }
 
+    const guildId = interaction.guild.id;
     const config = getConfig(guildId);
     const hasAdmin = interaction.memberPermissions?.has(
       PermissionsBitField.Flags.ManageGuild
@@ -333,38 +246,6 @@ module.exports = {
       return;
     }
 
-    if (sub === "set-grant-on-post") {
-      const messageText = interaction.options.getString("message", true);
-      const emojis = interaction.options.getString("emojis", true);
-      const roles = interaction.options.getString("roles", true);
-      const parsed = parseEmojiRolePairs(emojis, roles);
-      if (parsed.error) {
-        await interaction.reply({ content: parsed.error, ephemeral: true });
-        return;
-      }
-      const channel = interaction.channel;
-      if (!channel || !channel.isTextBased() || channel.isDMBased?.()) {
-        await interaction.reply({
-          content: "이 명령은 텍스트 채널에서만 사용할 수 있어요.",
-          ephemeral: true,
-        });
-        return;
-      }
-      const panelMessage = await channel.send({ content: messageText });
-      for (const emoji of parsed.emojiList) {
-        try {
-          await panelMessage.react(emoji);
-        } catch (error) {
-          console.warn("[grant-on-post] Failed to react:", error);
-        }
-      }
-      setGrantOnPost(guildId, channel.id, panelMessage.id, parsed.map);
-      await interaction.reply({
-        content: `역할 부여 패널을 ${formatChannel(channel.id)}에 게시했어요.`,
-        ephemeral: true,
-      });
-      return;
-    }
 
     if (sub === "allow-command-role") {
       if (!hasAdmin) {
@@ -489,14 +370,6 @@ module.exports = {
         `- join_delay: ${formatSeconds(config.join_delay_ms)}`,
         `- intro_channel: ${formatChannel(config.intro_channel_id)}`,
         `- intro_role: ${formatRole(config.intro_role_id)}`,
-        `- grant_on_post_channel: ${formatChannel(
-          config.grant_on_post_channel_id
-        )}`,
-        `- grant_on_post_message: ${config.grant_on_post_message_id || "미설정"
-        }`,
-        `- grant_on_post_emojis: ${formatGrantOnPostMap(
-          config.grant_on_post_emoji_map
-        )}`,
         `- command_roles: ${formatRoles(config.command_role_ids)}`,
         `- command_users: ${formatUsersList(config.command_user_ids)}`,
         `- ticket_channel: ${formatChannel(config.ticket_channel_id)}`,

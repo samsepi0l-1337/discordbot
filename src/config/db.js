@@ -86,12 +86,69 @@ function getDb() {
     );
   `);
   db.exec(`
+    CREATE TABLE IF NOT EXISTS rr_active_message (
+      guild_id TEXT PRIMARY KEY,
+      channel_id TEXT NOT NULL,
+      message_id TEXT NOT NULL
+    );
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS rr_rules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      message_id TEXT NOT NULL,
+      emoji_key TEXT NOT NULL,
+      role_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      toggle_group TEXT,
+      created_at INTEGER NOT NULL,
+      UNIQUE(guild_id, message_id, emoji_key, role_id, type, toggle_group)
+    );
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS rr_settings (
+      guild_id TEXT PRIMARY KEY,
+      dm_enabled INTEGER NOT NULL DEFAULT 0
+    );
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS autoroles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      target TEXT NOT NULL,
+      role_id TEXT NOT NULL,
+      UNIQUE(guild_id, target, role_id)
+    );
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS timed_roles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      role_id TEXT NOT NULL,
+      delay_ms INTEGER NOT NULL,
+      UNIQUE(guild_id, role_id)
+    );
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS voice_roles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      voice_channel_id TEXT NOT NULL,
+      role_id TEXT NOT NULL,
+      UNIQUE(guild_id, voice_channel_id, role_id)
+    );
+  `);
+  db.exec(`
     CREATE INDEX IF NOT EXISTS idx_ticket_sessions_opener
       ON ticket_sessions (opener_id, status, created_at);
   `);
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_ticket_forwarded_staff_msg
       ON ticket_forwarded_messages (staff_message_id);
+  `);
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_rr_rules_message
+      ON rr_rules (guild_id, message_id, emoji_key);
   `);
   return db;
 }
