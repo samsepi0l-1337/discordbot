@@ -1,9 +1,10 @@
-const {
+import {
   SlashCommandBuilder,
   PermissionsBitField,
   ChannelType,
-} = require("discord.js");
-const {
+  type ChatInputCommandInteraction,
+} from "discord.js";
+import {
   getConfig,
   setTicketChannel,
   setTicketPanelMessage,
@@ -13,31 +14,18 @@ const {
   removeTicketSupportRole,
   addTicketRecipient,
   removeTicketRecipient,
-} = require("../config/guildConfigRepo");
-const { postTicketPanel } = require("../tickets/ticketService");
-const {
+} from "../config/guildConfigRepo";
+import {
+  postTicketPanel,
   getOpenTicketByChannel,
   closeTicketSession,
   setTicketClaim,
   touchTicket,
-} = require("../tickets/ticketService");
+} from "../tickets/ticketService";
+import { canManageCommands } from "../core/permissions";
+import { formatRole, formatUser } from "../core/formatters/mentions";
 
-function canManage(interaction, config) {
-  const hasAdmin = interaction.memberPermissions?.has(
-    PermissionsBitField.Flags.ManageGuild
-  );
-  if (hasAdmin) return true;
-  const hasAllowedRole =
-    !!config?.command_role_ids?.length &&
-    interaction.member?.roles?.cache?.some((role) =>
-      config.command_role_ids.includes(role.id)
-    );
-  if (hasAllowedRole) return true;
-  const hasAllowedUser = config?.command_user_ids?.includes(interaction.user.id);
-  return !!hasAllowedUser;
-}
-
-function isSupport(interaction, config) {
+function isSupport(interaction: ChatInputCommandInteraction, config: any) {
   if (config?.ticket_support_user_ids?.includes(interaction.user.id)) return true;
   if (!config?.ticket_support_role_ids?.length) return false;
   return interaction.member?.roles?.cache?.some((role) =>
@@ -50,9 +38,7 @@ module.exports = {
     .setName("ticket")
     .setDescription("티켓 설정/관리")
     .addSubcommand((sub) =>
-      sub
-        .setName("panel")
-        .setDescription("이 채널에 티켓 생성 버튼(패널 메시지) 올리기")
+      sub.setName("panel").setDescription("이 채널에 티켓 생성 버튼(패널 메시지) 올리기")
     )
     .addSubcommand((sub) =>
       sub
@@ -115,15 +101,10 @@ module.exports = {
         .setName("close")
         .setDescription("이 티켓 스레드 닫기(잠금/아카이브)")
         .addStringOption((option) =>
-          option
-            .setName("reason")
-            .setDescription("사유(선택)")
-            .setRequired(false)
+          option.setName("reason").setDescription("사유(선택)")
         )
     )
-    .addSubcommand((sub) =>
-      sub.setName("claim").setDescription("이 티켓 담당하기(클레임)")
-    )
+    .addSubcommand((sub) => sub.setName("claim").setDescription("이 티켓 담당하기(클레임)"))
     .addSubcommand((sub) =>
       sub.setName("unclaim").setDescription("담당 해제하기(언클레임)")
     )
@@ -152,7 +133,7 @@ module.exports = {
         )
     ),
 
-  async execute(interaction) {
+  async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.inGuild()) {
       await interaction.reply({
         content: "이 명령은 서버에서만 사용할 수 있어요.",
@@ -164,6 +145,15 @@ module.exports = {
     const guildId = interaction.guild.id;
     const config = getConfig(guildId);
     const sub = interaction.options.getSubcommand();
+    const hasAdmin = interaction.memberPermissions?.has(
+      PermissionsBitField.Flags.ManageGuild
+    );
+    const canManage = canManageCommands(
+      interaction.member as never,
+      interaction.user.id,
+      config || {},
+      Boolean(hasAdmin)
+    );
 
     if (
       [
@@ -176,7 +166,7 @@ module.exports = {
         "remove-support-user",
       ].includes(sub)
     ) {
-      if (!canManage(interaction, config)) {
+      if (!canManage) {
         await interaction.reply({
           content: "이 작업은 관리자 또는 허용된 권한이 필요해요.",
           ephemeral: true,
@@ -228,7 +218,7 @@ module.exports = {
       const role = interaction.options.getRole("role", true);
       addTicketSupportRole(guildId, role.id);
       await interaction.reply({
-        content: `티켓 지원 역할에 <@&${role.id}>를 추가했어요.`,
+        content: `티켓 지원 역할에 ${formatRole(role.id)}를 추가했어요.`,
         ephemeral: true,
       });
       return;
@@ -238,7 +228,7 @@ module.exports = {
       const role = interaction.options.getRole("role", true);
       removeTicketSupportRole(guildId, role.id);
       await interaction.reply({
-        content: `티켓 지원 역할에서 <@&${role.id}>를 제거했어요.`,
+        content: `티켓 지원 역할에서 ${formatRole(role.id)}를 제거했어요.`,
         ephemeral: true,
       });
       return;
@@ -248,7 +238,7 @@ module.exports = {
       const user = interaction.options.getUser("user", true);
       addTicketRecipient(guildId, user.id);
       await interaction.reply({
-        content: `티켓 지원 유저에 <@${user.id}>를 추가했어요.`,
+        content: `티켓 지원 유저에 ${formatUser(user.id)}를 추가했어요.`,
         ephemeral: true,
       });
       return;
@@ -258,13 +248,13 @@ module.exports = {
       const user = interaction.options.getUser("user", true);
       removeTicketRecipient(guildId, user.id);
       await interaction.reply({
-        content: `티켓 지원 유저에서 <@${user.id}>를 제거했어요.`,
+        content: `티켓 지원 유저에서 ${formatUser(user.id)}를 제거했어요.`,
         ephemeral: true,
       });
       return;
     }
 
-    const ticket = getOpenTicketByChannel(guildId, interaction.channel.id);
+    const ticket = getOpenTicketByChannel(guildId, interaction.channel!.id);
     if (!ticket) {
       await interaction.reply({
         content: "이 채널은 티켓 채널이 아니에요.",
@@ -304,7 +294,7 @@ module.exports = {
       }
       setTicketClaim(ticket.id, interaction.user.id);
       await interaction.reply({
-        content: `이 티켓을 <@${interaction.user.id}>가 클레임했어요.`,
+        content: `이 티켓을 ${formatUser(interaction.user.id)}가 클레임했어요.`,
         ephemeral: false,
       });
       return;
@@ -337,7 +327,7 @@ module.exports = {
       const user = interaction.options.getUser("user", true);
       setTicketClaim(ticket.id, user.id);
       await interaction.reply({
-        content: `클레임을 <@${user.id}>에게 전달했어요.`,
+        content: `클레임을 ${formatUser(user.id)}에게 전달했어요.`,
         ephemeral: false,
       });
       return;
@@ -360,7 +350,7 @@ module.exports = {
             await interaction.channel.members.remove(user.id);
           }
         } else {
-          await interaction.channel.permissionOverwrites.edit(user.id, {
+          await interaction.channel!.permissionOverwrites.edit(user.id, {
             ViewChannel: sub === "add",
             SendMessages: sub === "add",
             ReadMessageHistory: sub === "add",
@@ -376,11 +366,10 @@ module.exports = {
       await interaction.reply({
         content:
           sub === "add"
-            ? `티켓에 <@${user.id}>를 추가했어요.`
-            : `티켓에서 <@${user.id}>를 제거했어요.`,
+            ? `티켓에 ${formatUser(user.id)}를 추가했어요.`
+            : `티켓에서 ${formatUser(user.id)}를 제거했어요.`,
         ephemeral: false,
       });
     }
   },
 };
-

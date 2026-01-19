@@ -1,9 +1,10 @@
-const {
+import {
   SlashCommandBuilder,
   PermissionsBitField,
   ChannelType,
-} = require("discord.js");
-const {
+  type ChatInputCommandInteraction,
+} from "discord.js";
+import {
   getConfig,
   setJoinDelayMs,
   setBaseRole,
@@ -14,36 +15,21 @@ const {
   removeCommandUser,
   clearField,
   resetConfig,
-} = require("../config/guildConfigRepo");
+} from "../config/guildConfigRepo";
+import { canManageCommands } from "../core/permissions";
+import { formatChannel, formatRole, formatUser } from "../core/formatters/mentions";
 
-function formatRole(id) {
-  return id ? `<@&${id}>` : "미설정";
-}
-
-function formatChannel(id) {
-  return id ? `<#${id}>` : "미설정";
-}
-
-function formatUser(id) {
-  return id ? `<@${id}>` : "미설정";
-}
-
-function formatUsers(ids) {
-  if (!ids?.length) return "미설정";
-  return ids.map((id) => `<@${id}>`).join(", ");
-}
-
-function formatRoles(ids) {
+function formatRoles(ids?: string[] | null) {
   if (!ids?.length) return "미설정";
   return ids.map((id) => formatRole(id)).join(", ");
 }
 
-function formatUsersList(ids) {
+function formatUsersList(ids?: string[] | null) {
   if (!ids?.length) return "미설정";
   return ids.map((id) => formatUser(id)).join(", ");
 }
 
-function formatSeconds(ms) {
+function formatSeconds(ms?: number | null) {
   return `${Math.max(0, Math.round((ms || 0) / 1000))}초`;
 }
 
@@ -74,7 +60,7 @@ module.exports = {
     .addSubcommand((sub) =>
       sub
         .setName("set-intro")
-        .setDescription("자기소개 채널/역할/체크 이모지 설정")
+        .setDescription("자기소개 채널/역할 설정")
         .addChannelOption((option) =>
           option
             .setName("channel")
@@ -118,9 +104,7 @@ module.exports = {
           option.setName("user").setDescription("허용 유저").setRequired(true)
         )
     )
-    .addSubcommand((sub) =>
-      sub.setName("show").setDescription("현재 설정 보기")
-    )
+    .addSubcommand((sub) => sub.setName("show").setDescription("현재 설정 보기"))
     .addSubcommand((sub) =>
       sub
         .setName("clear")
@@ -140,11 +124,9 @@ module.exports = {
             )
         )
     )
-    .addSubcommand((sub) =>
-      sub.setName("reset").setDescription("모든 설정 초기화")
-    ),
+    .addSubcommand((sub) => sub.setName("reset").setDescription("모든 설정 초기화")),
 
-  async execute(interaction) {
+  async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.inGuild()) {
       await interaction.reply({
         content: "이 명령은 서버에서만 사용할 수 있어요.",
@@ -158,18 +140,15 @@ module.exports = {
     const hasAdmin = interaction.memberPermissions?.has(
       PermissionsBitField.Flags.ManageGuild
     );
-    const hasAllowedRole =
-      !!config?.command_role_ids?.length &&
-      interaction.member?.roles?.cache?.some((role) =>
-        config.command_role_ids.includes(role.id)
-      );
-    const hasAllowedUser = config?.command_user_ids?.includes(
-      interaction.user.id
+    const allowed = canManageCommands(
+      interaction.member as never,
+      interaction.user.id,
+      config || {},
+      Boolean(hasAdmin)
     );
-    if (!hasAdmin && !hasAllowedRole && !hasAllowedUser) {
+    if (!allowed) {
       await interaction.reply({
-        content:
-          "이 명령을 사용하려면 서버 관리 권한 또는 허용된 역할이 필요해요.",
+        content: "이 명령을 사용하려면 서버 관리 권한 또는 허용된 역할이 필요해요.",
         ephemeral: true,
       });
       return;
@@ -203,14 +182,13 @@ module.exports = {
       const role = interaction.options.getRole("role", true);
       setIntro(guildId, channel.id, role.id);
       await interaction.reply({
-        content: `자기소개 채널 ${formatChannel(
-          channel.id
-        )}, 역할 ${formatRole(role.id)}로 설정했어요.`,
+        content: `자기소개 채널 ${formatChannel(channel.id)}, 역할 ${formatRole(
+          role.id
+        )}로 설정했어요.`,
         ephemeral: true,
       });
       return;
     }
-
 
     if (sub === "allow-command-role") {
       if (!hasAdmin) {
@@ -281,8 +259,8 @@ module.exports = {
     }
 
     if (sub === "show") {
-      const config = getConfig(guildId);
-      if (!config) {
+      const current = getConfig(guildId);
+      if (!current) {
         await interaction.reply({
           content: "현재 설정이 없습니다. 먼저 /config 명령으로 설정해주세요.",
           ephemeral: true,
@@ -290,12 +268,12 @@ module.exports = {
         return;
       }
       const lines = [
-        `- base_role: ${formatRole(config.base_role_id)}`,
-        `- join_delay: ${formatSeconds(config.join_delay_ms)}`,
-        `- intro_channel: ${formatChannel(config.intro_channel_id)}`,
-        `- intro_role: ${formatRole(config.intro_role_id)}`,
-        `- command_roles: ${formatRoles(config.command_role_ids)}`,
-        `- command_users: ${formatUsersList(config.command_user_ids)}`,
+        `- base_role: ${formatRole(current.base_role_id)}`,
+        `- join_delay: ${formatSeconds(current.join_delay_ms)}`,
+        `- intro_channel: ${formatChannel(current.intro_channel_id)}`,
+        `- intro_role: ${formatRole(current.intro_role_id)}`,
+        `- command_roles: ${formatRoles(current.command_role_ids)}`,
+        `- command_users: ${formatUsersList(current.command_user_ids)}`,
       ];
       await interaction.reply({
         content: `현재 설정\n${lines.join("\n")}`,
