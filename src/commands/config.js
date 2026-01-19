@@ -10,9 +10,12 @@ const {
   setBaseRole,
   setIntro,
   setGrantOnPost,
+  setTicketChannel,
+  setTicketRecipient,
   clearField,
   resetConfig,
 } = require("../config/guildConfigRepo");
+const { postTicketPanel } = require("../tickets/ticketService");
 
 function formatRole(id) {
   return id ? `<@&${id}>` : "미설정";
@@ -20,6 +23,10 @@ function formatRole(id) {
 
 function formatChannel(id) {
   return id ? `<#${id}>` : "미설정";
+}
+
+function formatUser(id) {
+  return id ? `<@${id}>` : "미설정";
 }
 
 function formatSeconds(ms) {
@@ -87,6 +94,26 @@ module.exports = {
         )
     )
     .addSubcommand((sub) =>
+      sub
+        .setName("set-ticket-channel")
+        .setDescription("티켓 패널을 게시할 채널 설정")
+        .addChannelOption((option) =>
+          option
+            .setName("channel")
+            .setDescription("티켓 채널")
+            .setRequired(true)
+            .addChannelTypes(ChannelType.GuildText)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("set-ticket-recipient")
+        .setDescription("티켓 메시지를 받을 담당자 설정")
+        .addUserOption((option) =>
+          option.setName("user").setDescription("담당자").setRequired(true)
+        )
+    )
+    .addSubcommand((sub) =>
       sub.setName("show").setDescription("현재 설정 보기")
     )
     .addSubcommand((sub) =>
@@ -105,7 +132,9 @@ module.exports = {
               { name: "intro_role", value: "intro_role" },
               { name: "grant_on_post_channel", value: "grant_on_post_channel" },
               { name: "grant_on_post_role", value: "grant_on_post_role" },
-              { name: "check_emoji", value: "check_emoji" }
+              { name: "check_emoji", value: "check_emoji" },
+              { name: "ticket_channel", value: "ticket_channel" },
+              { name: "ticket_recipient", value: "ticket_recipient" }
             )
         )
     )
@@ -185,6 +214,37 @@ module.exports = {
       return;
     }
 
+    if (sub === "set-ticket-channel") {
+      const channel = interaction.options.getChannel("channel", true);
+      setTicketChannel(guildId, channel.id);
+      let panelPosted = false;
+      try {
+        await postTicketPanel(channel);
+        panelPosted = true;
+      } catch (error) {
+        console.warn("[ticket-panel] Failed to post panel:", error);
+      }
+      await interaction.reply({
+        content: panelPosted
+          ? `티켓 채널을 ${formatChannel(channel.id)}로 설정하고 패널을 게시했어요.`
+          : `티켓 채널을 ${formatChannel(
+              channel.id
+            )}로 설정했어요. 패널 게시에 실패했으니 채널 권한을 확인해주세요.`,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    if (sub === "set-ticket-recipient") {
+      const user = interaction.options.getUser("user", true);
+      setTicketRecipient(guildId, user.id);
+      await interaction.reply({
+        content: `티켓 담당자를 ${formatUser(user.id)}로 설정했어요.`,
+        ephemeral: true,
+      });
+      return;
+    }
+
     if (sub === "show") {
       const config = getConfig(guildId);
       if (!config) {
@@ -206,6 +266,8 @@ module.exports = {
           config.grant_on_post_role_id
         )}`,
         `- check_emoji: ${config.check_emoji || DEFAULT_CHECK_EMOJI}`,
+        `- ticket_channel: ${formatChannel(config.ticket_channel_id)}`,
+        `- ticket_recipient: ${formatUser(config.ticket_recipient_id)}`,
       ];
       await interaction.reply({
         content: `현재 설정\n${lines.join("\n")}`,

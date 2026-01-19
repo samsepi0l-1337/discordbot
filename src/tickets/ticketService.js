@@ -50,19 +50,6 @@ function getLatestOpenTicketForUser(openerId) {
     .get(openerId);
 }
 
-function getTicketById(ticketId) {
-  const db = getDb();
-  return db
-    .prepare(
-      `
-      SELECT *
-      FROM ticket_sessions
-      WHERE id = ?
-    `
-    )
-    .get(ticketId);
-}
-
 function touchTicket(ticketId) {
   const db = getDb();
   db.prepare("UPDATE ticket_sessions SET updated_at = ? WHERE id = ?").run(
@@ -78,21 +65,15 @@ function closeTicketSession(ticketId) {
   ).run(Date.now(), ticketId);
 }
 
-function storeForwardedMessage(
-  ticketId,
-  guildId,
-  openerId,
-  staffMessageId,
-  staffUserId
-) {
+function storeForwardedMessage(ticketId, guildId, openerId, staffMessageId) {
   const db = getDb();
   db.prepare(
     `
     INSERT OR IGNORE INTO ticket_forwarded_messages
-      (ticket_id, guild_id, opener_id, staff_message_id, staff_user_id, created_at)
-    VALUES (?, ?, ?, ?, ?, ?)
+      (ticket_id, guild_id, opener_id, staff_message_id, created_at)
+    VALUES (?, ?, ?, ?, ?)
   `
-  ).run(ticketId, guildId, openerId, staffMessageId, staffUserId, Date.now());
+  ).run(ticketId, guildId, openerId, staffMessageId, Date.now());
 }
 
 function getForwardedMessage(staffMessageId) {
@@ -108,28 +89,13 @@ function getForwardedMessage(staffMessageId) {
     .get(staffMessageId);
 }
 
-function getForwardedMessagesByTicket(ticketId) {
-  const db = getDb();
-  return db
-    .prepare(
-      `
-      SELECT *
-      FROM ticket_forwarded_messages
-      WHERE ticket_id = ?
-    `
-    )
-    .all(ticketId);
-}
-
 module.exports = {
   TICKET_CREATE_BUTTON_ID,
   postTicketPanel,
   createTicketSession,
-  getTicketById,
   getLatestOpenTicketForUser,
   touchTicket,
   closeTicketSession,
   storeForwardedMessage,
   getForwardedMessage,
-  getForwardedMessagesByTicket,
 };
