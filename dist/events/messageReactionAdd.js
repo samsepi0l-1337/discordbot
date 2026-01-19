@@ -41,8 +41,8 @@ module.exports = {
             emojiKey,
             member,
             userId: user.id,
-            removeReaction: (userId) => reaction.users.remove(userId),
-            sendDm: (content) => user.send({ content }),
+            removeReaction: (userId) => reaction.users.remove(userId).then(() => undefined),
+            sendDm: (content) => user.send({ content }).then(() => undefined),
         });
     },
 };

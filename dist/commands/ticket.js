@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const guildConfigRepo_1 = require("../config/guildConfigRepo");
-const ticketService_1 = require("../tickets/ticketService");
+const ticketService = require("../tickets/ticketService");
 const permissions_1 = require("../core/permissions");
 const mentions_1 = require("../core/formatters/mentions");
 function isSupport(interaction, config) {
@@ -10,7 +10,8 @@ function isSupport(interaction, config) {
         return true;
     if (!config?.ticket_support_role_ids?.length)
         return false;
-    return interaction.member?.roles?.cache?.some((role) => config.ticket_support_role_ids.includes(role.id));
+    const roleCache = interaction.member?.roles?.cache;
+    return roleCache?.some((role) => config.ticket_support_role_ids.includes(role.id));
 }
 module.exports = {
     data: new discord_js_1.SlashCommandBuilder()
@@ -75,7 +76,8 @@ module.exports = {
             });
             return;
         }
-        const guildId = interaction.guild.id;
+        const guild = interaction.guild;
+        const guildId = guild.id;
         const config = (0, guildConfigRepo_1.getConfig)(guildId);
         const sub = interaction.options.getSubcommand();
         const hasAdmin = interaction.memberPermissions?.has(discord_js_1.PermissionsBitField.Flags.ManageGuild);
@@ -106,7 +108,7 @@ module.exports = {
                 });
                 return;
             }
-            const panel = await (0, ticketService_1.postTicketPanel)(channel);
+            const panel = await ticketService.postTicketPanel(channel);
             (0, guildConfigRepo_1.setTicketChannel)(guildId, channel.id);
             (0, guildConfigRepo_1.setTicketPanelMessage)(guildId, panel.id);
             await interaction.reply({
@@ -169,7 +171,7 @@ module.exports = {
             });
             return;
         }
-        const ticket = (0, ticketService_1.getOpenTicketByChannel)(guildId, interaction.channel.id);
+        const ticket = ticketService.getOpenTicketByChannel(guildId, interaction.channel.id);
         if (!ticket) {
             await interaction.reply({
                 content: "이 채널은 티켓 채널이 아니에요.",
@@ -188,8 +190,8 @@ module.exports = {
                 return;
             }
             const reason = interaction.options.getString("reason") || null;
-            (0, ticketService_1.closeTicketSession)(ticket.id, interaction.user.id, reason);
-            (0, ticketService_1.touchTicket)(ticket.id);
+            ticketService.closeTicketSession(ticket.id, interaction.user.id, reason);
+            ticketService.touchTicket(ticket.id);
             await interaction.reply({
                 content: "티켓을 닫았어요. (버튼 닫기와 동일하게 처리됩니다)",
                 ephemeral: true,
@@ -204,7 +206,7 @@ module.exports = {
                 });
                 return;
             }
-            (0, ticketService_1.setTicketClaim)(ticket.id, interaction.user.id);
+            ticketService.setTicketClaim(ticket.id, interaction.user.id);
             await interaction.reply({
                 content: `이 티켓을 ${(0, mentions_1.formatUser)(interaction.user.id)}가 클레임했어요.`,
                 ephemeral: false,
@@ -219,7 +221,7 @@ module.exports = {
                 });
                 return;
             }
-            (0, ticketService_1.setTicketClaim)(ticket.id, null);
+            ticketService.setTicketClaim(ticket.id, null);
             await interaction.reply({
                 content: "클레임이 해제되었어요.",
                 ephemeral: false,
@@ -235,7 +237,7 @@ module.exports = {
                 return;
             }
             const user = interaction.options.getUser("user", true);
-            (0, ticketService_1.setTicketClaim)(ticket.id, user.id);
+            ticketService.setTicketClaim(ticket.id, user.id);
             await interaction.reply({
                 content: `클레임을 ${(0, mentions_1.formatUser)(user.id)}에게 전달했어요.`,
                 ephemeral: false,
@@ -260,7 +262,7 @@ module.exports = {
                         await interaction.channel.members.remove(user.id);
                     }
                 }
-                else {
+                else if ("permissionOverwrites" in interaction.channel) {
                     await interaction.channel.permissionOverwrites.edit(user.id, {
                         ViewChannel: sub === "add",
                         SendMessages: sub === "add",

@@ -34,7 +34,10 @@ export class OnboardingService<Member> {
 
     const autoroles = this.autoroleRepo.list(input.guildId);
     for (const rule of autoroles) {
-      const shouldAssign = rule.target === "all" || (rule.target === "bot" && input.isBot);
+      const shouldAssign =
+        rule.target === "all" ||
+        (rule.target === "bot" && input.isBot) ||
+        (rule.target === "user" && !input.isBot);
       if (!shouldAssign) continue;
       this.schedule(() => {
         void this.roleManager.assignRole(input.member, rule.role_id, "autorole");

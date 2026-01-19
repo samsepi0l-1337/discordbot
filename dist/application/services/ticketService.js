@@ -67,7 +67,7 @@ class TicketService {
             return;
         }
         const panelChannel = await interaction.guild.channels.fetch(panelChannelId).catch(() => null);
-        if (!panelChannel?.isTextBased()) {
+        if (!panelChannel?.isTextBased() || !("threads" in panelChannel)) {
             await interaction.reply({
                 content: "티켓 패널 채널을 찾을 수 없어요. 설정을 확인해주세요.",
                 ephemeral: true,

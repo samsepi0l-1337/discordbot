@@ -396,7 +396,7 @@ module.exports = {
       }
 
       const type = sub;
-      const rules = listRulesByMessage(guildId, active.message.id);
+      const rules = listRulesByMessage(guildId, active.message.id) as RrRule[];
       if (type === "once") {
         const hasOther = rules.some((rule) => rule.type !== "once");
         if (hasOther) {

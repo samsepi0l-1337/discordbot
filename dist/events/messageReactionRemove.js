@@ -40,7 +40,7 @@ module.exports = {
             messageId: message.id,
             emojiKey,
             member,
-            sendDm: (content) => user.send({ content }),
+            sendDm: (content) => user.send({ content }).then(() => undefined),
         });
     },
 };

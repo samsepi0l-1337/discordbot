@@ -168,7 +168,8 @@ module.exports = {
             });
             return;
         }
-        const guildId = interaction.guild.id;
+        const guild = interaction.guild;
+        const guildId = guild.id;
         const config = (0, guildConfigRepo_1.getConfig)(guildId);
         const hasAdmin = interaction.memberPermissions?.has(discord_js_1.PermissionsBitField.Flags.ManageGuild);
         const allowed = (0, permissions_1.canManageCommands)(interaction.member, interaction.user.id, config || {}, Boolean(hasAdmin));
@@ -200,7 +201,7 @@ module.exports = {
                 });
                 return;
             }
-            const channel = await interaction.guild.channels.fetch(active.channel_id).catch(() => null);
+            const channel = await guild.channels.fetch(active.channel_id).catch(() => null);
             if (!channel?.isTextBased()) {
                 await interaction.reply({
                     content: "활성 채널을 찾을 수 없어요.",
@@ -357,7 +358,7 @@ module.exports = {
                     });
                     return;
                 }
-                const channel = await interaction.guild.channels.fetch(channelId).catch(() => null);
+                const channel = await guild.channels.fetch(channelId).catch(() => null);
                 const message = channel?.isTextBased()
                     ? await channel.messages.fetch(messageId).catch(() => null)
                     : null;
