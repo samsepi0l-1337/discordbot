@@ -263,102 +263,172 @@ async function buildTranscriptText(channel) {
   return lines.join("\n");
 }
 
-async function handleTicketCloseButton(interaction) {
-  const guildId = interaction.guild.id;
-  const ticket = getOpenTicketByChannel(guildId, interaction.channel.id);
-  if (!ticket) {
-    await interaction.reply({ content: "티켓을 찾을 수 없어요.", ephemeral: true });
-    return;
-  }
-  const config = getConfig(guildId);
-  const member = interaction.member;
-  const canClose = ticket.opener_id === interaction.user.id || isTicketSupport(config, member);
-  if (!canClose) {
-    await interaction.reply({ content: "이 티켓을 닫을 권한이 없어요.", ephemeral: true });
-    return;
-  }
-
-  closeTicketSession(ticket.id, interaction.user.id, "closed-by-button");
-  touchTicket(ticket.id);
-
+async function ensureThreadUnarchived(channel) {
+  if (!channel?.isThread?.()) return;
+  if (!channel.archived) return;
   try {
-    if (interaction.channel?.isThread?.()) {
-      await interaction.channel.setLocked(true);
-      await interaction.channel.setArchived(true);
-    }
+    await channel.setArchived(false);
   } catch {
-    // ignore
+    // If we can't unarchive, interaction callbacks may fail.
   }
+}
 
-  if (config?.ticket_transcript_channel_id) {
-    const transcriptChannel = await interaction.guild.channels
-      .fetch(config.ticket_transcript_channel_id)
-      .catch(() => null);
-    if (transcriptChannel?.isTextBased()) {
-      const text = await buildTranscriptText(interaction.channel);
-      await transcriptChannel.send({
-        content: `티켓 #${ticket.id} 트랜스크립트 (채널: <#${interaction.channel.id}>)`,
-        files: [
-          {
-            attachment: Buffer.from(text, "utf8"),
-            name: `ticket-${ticket.id}.txt`,
-          },
-        ],
+async function handleTicketCloseButton(interaction) {
+  try {
+    await ensureThreadUnarchived(interaction.channel);
+
+    const guildId = interaction.guild.id;
+    const ticket = getOpenTicketByChannel(guildId, interaction.channel.id);
+    if (!ticket) {
+      await interaction.reply({
+        content: "티켓을 찾을 수 없어요.",
+        ephemeral: true,
       });
+      return;
+    }
+
+    const config = getConfig(guildId);
+    const member = interaction.member;
+    const canClose =
+      ticket.opener_id === interaction.user.id || isTicketSupport(config, member);
+    if (!canClose) {
+      await interaction.reply({
+        content: "이 티켓을 닫을 권한이 없어요.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    // Ack early (important if we later archive the thread).
+    await interaction.deferReply({ ephemeral: true });
+
+    closeTicketSession(ticket.id, interaction.user.id, "closed-by-button");
+    touchTicket(ticket.id);
+
+    if (config?.ticket_transcript_channel_id) {
+      const transcriptChannel = await interaction.guild.channels
+        .fetch(config.ticket_transcript_channel_id)
+        .catch(() => null);
+      if (transcriptChannel?.isTextBased()) {
+        const text = await buildTranscriptText(interaction.channel);
+        await transcriptChannel.send({
+          content: `티켓 #${ticket.id} 트랜스크립트 (채널: <#${interaction.channel.id}>)`,
+          files: [
+            {
+              attachment: Buffer.from(text, "utf8"),
+              name: `ticket-${ticket.id}.txt`,
+            },
+          ],
+        });
+      }
+    }
+
+    try {
+      if (interaction.channel?.isThread?.()) {
+        await interaction.channel.setLocked(true);
+        await interaction.channel.setArchived(true);
+      }
+    } catch {
+      // ignore
+    }
+
+    await interaction.editReply({ content: "티켓을 닫았어요." });
+  } catch (error) {
+    console.warn("[ticket-close] Failed:", error);
+    // Best effort response; may still fail if thread remains archived.
+    try {
+      if (interaction.deferred || interaction.replied) {
+        await interaction.followUp({
+          content: "티켓 닫기 처리 중 오류가 발생했어요.",
+          ephemeral: true,
+        });
+      } else {
+        await interaction.reply({
+          content: "티켓 닫기 처리 중 오류가 발생했어요.",
+          ephemeral: true,
+        });
+      }
+    } catch {
+      // ignore
     }
   }
-
-  await interaction.reply({ content: "티켓을 닫았어요.", ephemeral: true });
 }
 
 async function handleTicketClaimButton(interaction) {
-  const guildId = interaction.guild.id;
-  const ticket = getOpenTicketByChannel(guildId, interaction.channel.id);
-  if (!ticket) {
-    await interaction.reply({ content: "티켓을 찾을 수 없어요.", ephemeral: true });
-    return;
-  }
-  const config = getConfig(guildId);
-  if (!isTicketSupport(config, interaction.member)) {
-    await interaction.reply({ content: "지원팀만 클레임할 수 있어요.", ephemeral: true });
-    return;
-  }
+  try {
+    await ensureThreadUnarchived(interaction.channel);
 
-  if (interaction.customId === TICKET_CLAIM_BUTTON_ID) {
-    setTicketClaim(ticket.id, interaction.user.id);
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(TICKET_UNCLAIM_BUTTON_ID)
-        .setLabel("언클레임")
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId(TICKET_CLOSE_BUTTON_ID)
-        .setLabel("닫기")
-        .setStyle(ButtonStyle.Danger)
-    );
-    await interaction.update({
-      content: `이 티켓은 <@${interaction.user.id}>가 클레임했어요.`,
-      components: [row],
-    });
-    return;
-  }
+    const guildId = interaction.guild.id;
+    const ticket = getOpenTicketByChannel(guildId, interaction.channel.id);
+    if (!ticket) {
+      await interaction.reply({
+        content: "티켓을 찾을 수 없어요.",
+        ephemeral: true,
+      });
+      return;
+    }
+    const config = getConfig(guildId);
+    if (!isTicketSupport(config, interaction.member)) {
+      await interaction.reply({
+        content: "지원팀만 클레임할 수 있어요.",
+        ephemeral: true,
+      });
+      return;
+    }
 
-  if (interaction.customId === TICKET_UNCLAIM_BUTTON_ID) {
-    setTicketClaim(ticket.id, null);
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(TICKET_CLAIM_BUTTON_ID)
-        .setLabel("클레임")
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId(TICKET_CLOSE_BUTTON_ID)
-        .setLabel("닫기")
-        .setStyle(ButtonStyle.Danger)
-    );
-    await interaction.update({
-      content: "클레임이 해제되었어요.",
-      components: [row],
-    });
+    if (interaction.customId === TICKET_CLAIM_BUTTON_ID) {
+      setTicketClaim(ticket.id, interaction.user.id);
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(TICKET_UNCLAIM_BUTTON_ID)
+          .setLabel("언클레임")
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId(TICKET_CLOSE_BUTTON_ID)
+          .setLabel("닫기")
+          .setStyle(ButtonStyle.Danger)
+      );
+      await interaction.update({
+        content: `이 티켓은 <@${interaction.user.id}>가 클레임했어요.`,
+        components: [row],
+      });
+      return;
+    }
+
+    if (interaction.customId === TICKET_UNCLAIM_BUTTON_ID) {
+      setTicketClaim(ticket.id, null);
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(TICKET_CLAIM_BUTTON_ID)
+          .setLabel("클레임")
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId(TICKET_CLOSE_BUTTON_ID)
+          .setLabel("닫기")
+          .setStyle(ButtonStyle.Danger)
+      );
+      await interaction.update({
+        content: "클레임이 해제되었어요.",
+        components: [row],
+      });
+    }
+  } catch (error) {
+    console.warn("[ticket-claim] Failed:", error);
+    try {
+      if (interaction.deferred || interaction.replied) {
+        await interaction.followUp({
+          content: "클레임 처리 중 오류가 발생했어요.",
+          ephemeral: true,
+        });
+      } else {
+        await interaction.reply({
+          content: "클레임 처리 중 오류가 발생했어요.",
+          ephemeral: true,
+        });
+      }
+    } catch {
+      // ignore
+    }
   }
 }
 

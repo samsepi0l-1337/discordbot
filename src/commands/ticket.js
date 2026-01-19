@@ -52,12 +52,12 @@ module.exports = {
     .addSubcommand((sub) =>
       sub
         .setName("panel")
-        .setDescription("현재 채널에 티켓 패널을 게시")
+        .setDescription("이 채널에 티켓 생성 버튼(패널 메시지) 올리기")
     )
     .addSubcommand((sub) =>
       sub
         .setName("set-category")
-        .setDescription("티켓 생성 카테고리 설정")
+        .setDescription("티켓을 정리할 카테고리(기본값) 설정")
         .addChannelOption((option) =>
           option
             .setName("category")
@@ -69,7 +69,7 @@ module.exports = {
     .addSubcommand((sub) =>
       sub
         .setName("set-transcripts")
-        .setDescription("티켓 종료 시 트랜스크립트 전송 채널 설정")
+        .setDescription("티켓 종료 로그(트랜스크립트) 받을 채널 설정")
         .addChannelOption((option) =>
           option
             .setName("channel")
@@ -81,7 +81,7 @@ module.exports = {
     .addSubcommand((sub) =>
       sub
         .setName("add-support-role")
-        .setDescription("티켓 지원 역할 추가")
+        .setDescription("지원팀 역할 추가(티켓 스레드에 초대)")
         .addRoleOption((option) =>
           option.setName("role").setDescription("역할").setRequired(true)
         )
@@ -89,7 +89,7 @@ module.exports = {
     .addSubcommand((sub) =>
       sub
         .setName("remove-support-role")
-        .setDescription("티켓 지원 역할 제거")
+        .setDescription("지원팀 역할 제거")
         .addRoleOption((option) =>
           option.setName("role").setDescription("역할").setRequired(true)
         )
@@ -97,7 +97,7 @@ module.exports = {
     .addSubcommand((sub) =>
       sub
         .setName("add-support-user")
-        .setDescription("티켓 지원 유저 추가")
+        .setDescription("지원팀 유저 추가(티켓 스레드에 초대)")
         .addUserOption((option) =>
           option.setName("user").setDescription("유저").setRequired(true)
         )
@@ -105,7 +105,7 @@ module.exports = {
     .addSubcommand((sub) =>
       sub
         .setName("remove-support-user")
-        .setDescription("티켓 지원 유저 제거")
+        .setDescription("지원팀 유저 제거")
         .addUserOption((option) =>
           option.setName("user").setDescription("유저").setRequired(true)
         )
@@ -113,7 +113,7 @@ module.exports = {
     .addSubcommand((sub) =>
       sub
         .setName("close")
-        .setDescription("현재 티켓 닫기")
+        .setDescription("이 티켓 스레드 닫기(잠금/아카이브)")
         .addStringOption((option) =>
           option
             .setName("reason")
@@ -122,15 +122,15 @@ module.exports = {
         )
     )
     .addSubcommand((sub) =>
-      sub.setName("claim").setDescription("현재 티켓 클레임")
+      sub.setName("claim").setDescription("이 티켓 담당하기(클레임)")
     )
     .addSubcommand((sub) =>
-      sub.setName("unclaim").setDescription("현재 티켓 언클레임")
+      sub.setName("unclaim").setDescription("담당 해제하기(언클레임)")
     )
     .addSubcommand((sub) =>
       sub
         .setName("transfer")
-        .setDescription("클레임을 다른 스태프로 이동")
+        .setDescription("담당자를 다른 스태프로 넘기기(transfer)")
         .addUserOption((option) =>
           option.setName("user").setDescription("대상").setRequired(true)
         )
@@ -138,7 +138,7 @@ module.exports = {
     .addSubcommand((sub) =>
       sub
         .setName("add")
-        .setDescription("티켓에 유저 추가")
+        .setDescription("이 티켓에 유저 초대하기")
         .addUserOption((option) =>
           option.setName("user").setDescription("유저").setRequired(true)
         )
@@ -146,7 +146,7 @@ module.exports = {
     .addSubcommand((sub) =>
       sub
         .setName("remove")
-        .setDescription("티켓에서 유저 제거")
+        .setDescription("이 티켓에서 유저 내보내기")
         .addUserOption((option) =>
           option.setName("user").setDescription("유저").setRequired(true)
         )
