@@ -22,6 +22,7 @@ function getConfig(guildId) {
              grant_on_post_message_id,
              grant_on_post_emoji_map,
              command_role_ids,
+             command_user_ids,
              check_emoji,
              ticket_channel_id,
              ticket_recipient_id
@@ -43,6 +44,12 @@ function getConfig(guildId) {
       .map((value) => value.trim())
       .filter(Boolean)
     : [];
+  const commandUserIds = row.command_user_ids
+    ? row.command_user_ids
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean)
+    : [];
   let grantOnPostEmojiMap = {};
   if (row.grant_on_post_emoji_map) {
     try {
@@ -55,6 +62,7 @@ function getConfig(guildId) {
     ...row,
     ticket_recipient_ids: recipientIds,
     command_role_ids: commandRoleIds,
+    command_user_ids: commandUserIds,
     grant_on_post_emoji_map: grantOnPostEmojiMap,
   };
 }
@@ -163,6 +171,28 @@ function removeCommandRole(guildId, roleId) {
   ).run(ids.length ? ids.join(",") : null, guildId);
 }
 
+function addCommandUser(guildId, userId) {
+  ensureGuildRow(guildId);
+  const current = getConfig(guildId);
+  const ids = current?.command_user_ids || [];
+  if (ids.includes(userId)) return;
+  ids.push(userId);
+  const db = getDb();
+  db.prepare(
+    "UPDATE guild_config SET command_user_ids = ? WHERE guild_id = ?"
+  ).run(ids.join(","), guildId);
+}
+
+function removeCommandUser(guildId, userId) {
+  ensureGuildRow(guildId);
+  const current = getConfig(guildId);
+  const ids = (current?.command_user_ids || []).filter((id) => id !== userId);
+  const db = getDb();
+  db.prepare(
+    "UPDATE guild_config SET command_user_ids = ? WHERE guild_id = ?"
+  ).run(ids.length ? ids.join(",") : null, guildId);
+}
+
 function clearField(guildId, fieldKey) {
   const fieldMap = {
     base_role: "base_role_id",
@@ -176,6 +206,7 @@ function clearField(guildId, fieldKey) {
     ticket_channel: "ticket_channel_id",
     ticket_recipient: "ticket_recipient_id",
     command_roles: "command_role_ids",
+    command_users: "command_user_ids",
   };
   const column = fieldMap[fieldKey];
   if (!column) return false;
@@ -204,6 +235,8 @@ module.exports = {
   removeTicketRecipient,
   addCommandRole,
   removeCommandRole,
+  addCommandUser,
+  removeCommandUser,
   clearField,
   resetConfig,
 };

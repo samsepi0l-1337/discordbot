@@ -15,6 +15,8 @@ const {
   removeTicketRecipient,
   addCommandRole,
   removeCommandRole,
+  addCommandUser,
+  removeCommandUser,
   clearField,
   resetConfig,
 } = require("../config/guildConfigRepo");
@@ -42,6 +44,11 @@ function formatUsers(ids) {
 function formatRoles(ids) {
   if (!ids?.length) return "미설정";
   return ids.map((id) => formatRole(id)).join(", ");
+}
+
+function formatUsersList(ids) {
+  if (!ids?.length) return "미설정";
+  return ids.map((id) => formatUser(id)).join(", ");
 }
 
 function formatGrantOnPostMap(map) {
@@ -187,6 +194,22 @@ module.exports = {
     )
     .addSubcommand((sub) =>
       sub
+        .setName("allow-command-user")
+        .setDescription("봇 커맨드 사용 허용 유저 추가")
+        .addUserOption((option) =>
+          option.setName("user").setDescription("허용 유저").setRequired(true)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("remove-command-user")
+        .setDescription("봇 커맨드 사용 허용 유저 제거")
+        .addUserOption((option) =>
+          option.setName("user").setDescription("허용 유저").setRequired(true)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
         .setName("set-ticket-channel")
         .setDescription("티켓 패널을 게시할 채널 설정")
         .addChannelOption((option) =>
@@ -235,7 +258,8 @@ module.exports = {
               { name: "grant_on_post_emojis", value: "grant_on_post_emojis" },
               { name: "ticket_channel", value: "ticket_channel" },
               { name: "ticket_recipient", value: "ticket_recipient" },
-              { name: "command_roles", value: "command_roles" }
+              { name: "command_roles", value: "command_roles" },
+              { name: "command_users", value: "command_users" }
             )
         )
     )
@@ -261,7 +285,10 @@ module.exports = {
       interaction.member?.roles?.cache?.some((role) =>
         config.command_role_ids.includes(role.id)
       );
-    if (!hasAdmin && !hasAllowedRole) {
+    const hasAllowedUser = config?.command_user_ids?.includes(
+      interaction.user.id
+    );
+    if (!hasAdmin && !hasAllowedRole && !hasAllowedUser) {
       await interaction.reply({
         content:
           "이 명령을 사용하려면 서버 관리 권한 또는 허용된 역할이 필요해요.",
@@ -356,6 +383,40 @@ module.exports = {
       return;
     }
 
+    if (sub === "allow-command-user") {
+      if (!hasAdmin) {
+        await interaction.reply({
+          content: "허용 유저 설정은 서버 관리 권한이 필요해요.",
+          ephemeral: true,
+        });
+        return;
+      }
+      const user = interaction.options.getUser("user", true);
+      addCommandUser(guildId, user.id);
+      await interaction.reply({
+        content: `커맨드 허용 유저에 ${formatUser(user.id)}를 추가했어요.`,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    if (sub === "remove-command-user") {
+      if (!hasAdmin) {
+        await interaction.reply({
+          content: "허용 유저 설정은 서버 관리 권한이 필요해요.",
+          ephemeral: true,
+        });
+        return;
+      }
+      const user = interaction.options.getUser("user", true);
+      removeCommandUser(guildId, user.id);
+      await interaction.reply({
+        content: `커맨드 허용 유저에서 ${formatUser(user.id)}를 제거했어요.`,
+        ephemeral: true,
+      });
+      return;
+    }
+
     if (sub === "remove-command-role") {
       if (!hasAdmin) {
         await interaction.reply({
@@ -437,6 +498,7 @@ module.exports = {
           config.grant_on_post_emoji_map
         )}`,
         `- command_roles: ${formatRoles(config.command_role_ids)}`,
+        `- command_users: ${formatUsersList(config.command_user_ids)}`,
         `- ticket_channel: ${formatChannel(config.ticket_channel_id)}`,
         `- ticket_recipient: ${formatUsers(config.ticket_recipient_ids)}`,
       ];
