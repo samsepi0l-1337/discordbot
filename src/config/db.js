@@ -21,6 +21,18 @@ function ensureGuildConfigColumns(dbInstance) {
   }
 }
 
+function ensureForwardedMessageColumns(dbInstance) {
+  const columns = dbInstance
+    .prepare("PRAGMA table_info(ticket_forwarded_messages)")
+    .all()
+    .map((row) => row.name);
+  if (!columns.includes("staff_user_id")) {
+    dbInstance.exec(
+      "ALTER TABLE ticket_forwarded_messages ADD COLUMN staff_user_id TEXT"
+    );
+  }
+}
+
 function getDb() {
   if (db) return db;
   const dataDir = path.join(__dirname, "..", "..", "data");
@@ -62,12 +74,18 @@ function getDb() {
       guild_id TEXT NOT NULL,
       opener_id TEXT NOT NULL,
       staff_message_id TEXT NOT NULL UNIQUE,
+      staff_user_id TEXT,
       created_at INTEGER NOT NULL
     );
   `);
+  ensureForwardedMessageColumns(db);
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_ticket_sessions_opener
       ON ticket_sessions (opener_id, status, created_at);
+  `);
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_ticket_forwarded_ticket
+      ON ticket_forwarded_messages (ticket_id);
   `);
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_ticket_forwarded_staff_msg

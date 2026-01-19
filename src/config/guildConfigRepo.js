@@ -33,7 +33,27 @@ function getConfig(guildId) {
   return {
     ...row,
     check_emoji: row.check_emoji || DEFAULT_CHECK_EMOJI,
+    ticket_recipient_ids: normalizeRecipients(row.ticket_recipient_id),
   };
+}
+
+function normalizeRecipients(rawValue) {
+  if (!rawValue) return [];
+  if (Array.isArray(rawValue)) return rawValue.filter(Boolean);
+  if (typeof rawValue === "string") {
+    try {
+      const parsed = JSON.parse(rawValue);
+      if (Array.isArray(parsed)) {
+        return parsed.map(String).filter(Boolean);
+      }
+    } catch {
+      return rawValue
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+    }
+  }
+  return [];
 }
 
 function setJoinDelayMs(guildId, joinDelayMs) {
@@ -91,11 +111,18 @@ function setTicketChannel(guildId, channelId) {
 }
 
 function setTicketRecipient(guildId, userId) {
+  return setTicketRecipients(guildId, [userId]);
+}
+
+function setTicketRecipients(guildId, userIds) {
   ensureGuildRow(guildId);
   const db = getDb();
+  const normalized = Array.from(
+    new Set((userIds || []).map(String).filter(Boolean))
+  );
   db.prepare(
     "UPDATE guild_config SET ticket_recipient_id = ? WHERE guild_id = ?"
-  ).run(userId, guildId);
+  ).run(JSON.stringify(normalized), guildId);
 }
 
 function clearField(guildId, fieldKey) {
@@ -134,6 +161,7 @@ module.exports = {
   setGrantOnPost,
   setTicketChannel,
   setTicketRecipient,
+  setTicketRecipients,
   clearField,
   resetConfig,
 };

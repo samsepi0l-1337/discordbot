@@ -11,7 +11,7 @@ const {
   setIntro,
   setGrantOnPost,
   setTicketChannel,
-  setTicketRecipient,
+  setTicketRecipients,
   clearField,
   resetConfig,
 } = require("../config/guildConfigRepo");
@@ -27,6 +27,11 @@ function formatChannel(id) {
 
 function formatUser(id) {
   return id ? `<@${id}>` : "미설정";
+}
+
+function formatUsers(ids) {
+  if (!ids || !ids.length) return "미설정";
+  return ids.map((id) => `<@${id}>`).join(", ");
 }
 
 function formatSeconds(ms) {
@@ -108,9 +113,21 @@ module.exports = {
     .addSubcommand((sub) =>
       sub
         .setName("set-ticket-recipient")
-        .setDescription("티켓 메시지를 받을 담당자 설정")
+        .setDescription("티켓 메시지를 받을 담당자들 설정")
         .addUserOption((option) =>
-          option.setName("user").setDescription("담당자").setRequired(true)
+          option.setName("user1").setDescription("담당자 1").setRequired(true)
+        )
+        .addUserOption((option) =>
+          option.setName("user2").setDescription("담당자 2").setRequired(false)
+        )
+        .addUserOption((option) =>
+          option.setName("user3").setDescription("담당자 3").setRequired(false)
+        )
+        .addUserOption((option) =>
+          option.setName("user4").setDescription("담당자 4").setRequired(false)
+        )
+        .addUserOption((option) =>
+          option.setName("user5").setDescription("담당자 5").setRequired(false)
         )
     )
     .addSubcommand((sub) =>
@@ -236,10 +253,24 @@ module.exports = {
     }
 
     if (sub === "set-ticket-recipient") {
-      const user = interaction.options.getUser("user", true);
-      setTicketRecipient(guildId, user.id);
+      const users = [
+        interaction.options.getUser("user1", true),
+        interaction.options.getUser("user2"),
+        interaction.options.getUser("user3"),
+        interaction.options.getUser("user4"),
+        interaction.options.getUser("user5"),
+      ].filter(Boolean);
+      const ids = users.map((user) => user.id);
+      if (!ids.length) {
+        await interaction.reply({
+          content: "담당자를 1명 이상 선택해주세요.",
+          ephemeral: true,
+        });
+        return;
+      }
+      setTicketRecipients(guildId, ids);
       await interaction.reply({
-        content: `티켓 담당자를 ${formatUser(user.id)}로 설정했어요.`,
+        content: `티켓 담당자를 ${formatUsers(ids)}로 설정했어요.`,
         ephemeral: true,
       });
       return;
@@ -267,7 +298,7 @@ module.exports = {
         )}`,
         `- check_emoji: ${config.check_emoji || DEFAULT_CHECK_EMOJI}`,
         `- ticket_channel: ${formatChannel(config.ticket_channel_id)}`,
-        `- ticket_recipient: ${formatUser(config.ticket_recipient_id)}`,
+        `- ticket_recipient: ${formatUsers(config.ticket_recipient_ids)}`,
       ];
       await interaction.reply({
         content: `현재 설정\n${lines.join("\n")}`,

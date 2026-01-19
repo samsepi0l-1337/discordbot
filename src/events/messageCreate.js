@@ -1,10 +1,13 @@
 const { getConfig } = require("../config/guildConfigRepo");
 const { assignRole } = require("../utils/discord");
 const {
+  getTicketById,
   getLatestOpenTicketForUser,
   storeForwardedMessage,
   getForwardedMessage,
+  getForwardedMessagesByTicket,
   touchTicket,
+  closeTicketSession,
 } = require("../tickets/ticketService");
 
 async function resolveMember(message) {
@@ -90,12 +93,22 @@ async function handleDirectMessage(message) {
 
 async function handleStaffReply(message, mapping) {
   const config = getConfig(mapping.guild_id);
-  if (!config || config.ticket_recipient_id !== message.author.id) {
+  if (!config || !config.ticket_recipient_ids?.length) {
+    await safeDmReply(message, "이 답장은 처리할 수 없어요.");
+    return;
+  }
+
+  if (!config.ticket_recipient_ids.includes(message.author.id)) {
     await safeDmReply(message, "이 답장은 처리할 수 없어요.");
     return;
   }
 
   try {
+    const ticket = getTicketById(mapping.ticket_id);
+    if (!ticket || ticket.status !== "open") {
+      await safeDmReply(message, "이미 종료된 티켓이에요.");
+      return;
+    }
     const opener = await message.client.users.fetch(mapping.opener_id);
     await opener.send({
       content: [
@@ -106,8 +119,25 @@ async function handleStaffReply(message, mapping) {
         .filter(Boolean)
         .join("\n"),
     });
+    closeTicketSession(mapping.ticket_id);
     touchTicket(mapping.ticket_id);
     await safeDmReply(message, "답장을 전달했어요.");
+
+    const forwarded = getForwardedMessagesByTicket(mapping.ticket_id);
+    const staffIds = forwarded
+      .map((row) => row.staff_user_id)
+      .filter((id) => id && id !== message.author.id);
+    const uniqueStaffIds = Array.from(new Set(staffIds));
+    for (const staffId of uniqueStaffIds) {
+      try {
+        const staffUser = await message.client.users.fetch(staffId);
+        await staffUser.send({
+          content: `티켓 #${mapping.ticket_id} 는 다른 스태프가 답변을 완료해서 만료되었습니다.`,
+        });
+      } catch {
+        // Ignore DM failures for staff notifications.
+      }
+    }
   } catch (error) {
     console.warn("[ticket-reply] Failed to DM opener:", error);
     await safeDmReply(message, "유저에게 전달하지 못했어요. DM 설정을 확인해주세요.");
@@ -125,7 +155,7 @@ async function handleTicketUserMessage(message) {
   }
 
   const config = getConfig(ticket.guild_id);
-  if (!config?.ticket_recipient_id) {
+  if (!config?.ticket_recipient_ids?.length) {
     await safeDmReply(
       message,
       "담당자가 설정되지 않았어요. 서버 관리자에게 문의해주세요."
@@ -139,27 +169,43 @@ async function handleTicketUserMessage(message) {
   const guildName = guild?.name || "Unknown Guild";
 
   try {
-    const staffUser = await message.client.users.fetch(
-      config.ticket_recipient_id
-    );
-    const staffMessage = await staffUser.send({
-      content: [
-        `새 티켓 메시지 (티켓 #${ticket.id})`,
-        `서버: ${guildName}`,
-        `보낸 사람: ${message.author.tag}`,
-        `메시지: ${message.content || "(내용 없음)"}`,
-        formatAttachments(message),
-        "이 메시지에 reply로 답장하면 유저에게 전달됩니다.",
-      ]
-        .filter(Boolean)
-        .join("\n"),
-    });
-    storeForwardedMessage(
-      ticket.id,
-      ticket.guild_id,
-      ticket.opener_id,
-      staffMessage.id
-    );
+    let deliveredCount = 0;
+    for (const staffId of config.ticket_recipient_ids) {
+      try {
+        const staffUser = await message.client.users.fetch(staffId);
+        const staffMessage = await staffUser.send({
+          content: [
+            `새 티켓 메시지 (티켓 #${ticket.id})`,
+            `서버: ${guildName}`,
+            `보낸 사람: ${message.author.tag}`,
+            `메시지: ${message.content || "(내용 없음)"}`,
+            formatAttachments(message),
+            "이 메시지에 reply로 답장하면 유저에게 전달됩니다.",
+          ]
+            .filter(Boolean)
+            .join("\n"),
+        });
+        storeForwardedMessage(
+          ticket.id,
+          ticket.guild_id,
+          ticket.opener_id,
+          staffMessage.id,
+          staffId
+        );
+        deliveredCount += 1;
+      } catch (error) {
+        console.warn("[ticket-forward] Failed to DM staff:", error);
+      }
+    }
+
+    if (!deliveredCount) {
+      await safeDmReply(
+        message,
+        "담당자에게 전달하지 못했어요. 잠시 후 다시 시도해주세요."
+      );
+      return;
+    }
+
     touchTicket(ticket.id);
     await safeDmReply(
       message,
