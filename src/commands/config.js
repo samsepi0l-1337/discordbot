@@ -1,4 +1,8 @@
-const { SlashCommandBuilder, PermissionsBitField } = require("discord.js");
+const {
+  SlashCommandBuilder,
+  PermissionsBitField,
+  ChannelType,
+} = require("discord.js");
 const {
   getConfig,
   setJoinDelayMs,
