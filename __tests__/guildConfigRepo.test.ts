@@ -1,4 +1,4 @@
-const { setTestDbPath, cleanupTestDbPath } = require("./testDb.cjs");
+import { cleanupTestDbPath, setTestDbPath } from "./testDb";
 
 describe("guildConfigRepo", () => {
   beforeEach(() => {
@@ -59,4 +59,3 @@ describe("guildConfigRepo", () => {
     expect(cfg.ticket_transcript_channel_id).toBe("log1");
   });
 });
-

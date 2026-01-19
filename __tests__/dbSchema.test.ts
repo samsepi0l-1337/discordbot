@@ -1,4 +1,4 @@
-const { setTestDbPath, cleanupTestDbPath } = require("./testDb.cjs");
+import { cleanupTestDbPath, setTestDbPath } from "./testDb";
 
 describe("db schema", () => {
   beforeEach(() => {
@@ -16,7 +16,7 @@ describe("db schema", () => {
     const tables = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
       .all()
-      .map((r) => r.name);
+      .map((r: { name: string }) => r.name);
 
     expect(tables).toEqual(
       expect.arrayContaining([
@@ -34,7 +34,7 @@ describe("db schema", () => {
     const guildConfigCols = db
       .prepare("PRAGMA table_info(guild_config)")
       .all()
-      .map((r) => r.name);
+      .map((r: { name: string }) => r.name);
     expect(guildConfigCols).toEqual(
       expect.arrayContaining([
         "guild_id",
@@ -56,7 +56,7 @@ describe("db schema", () => {
     const ticketCols = db
       .prepare("PRAGMA table_info(ticket_sessions)")
       .all()
-      .map((r) => r.name);
+      .map((r: { name: string }) => r.name);
     expect(ticketCols).toEqual(
       expect.arrayContaining([
         "id",
@@ -74,4 +74,3 @@ describe("db schema", () => {
     );
   });
 });
-

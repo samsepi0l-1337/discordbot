@@ -1,4 +1,4 @@
-const { setTestDbPath, cleanupTestDbPath } = require("./testDb.cjs");
+import { cleanupTestDbPath, setTestDbPath } from "./testDb";
 
 describe("rrRepo", () => {
   beforeEach(() => {
@@ -64,4 +64,3 @@ describe("rrRepo", () => {
     expect(rr.listRulesByMessage("g1", "m1")).toHaveLength(0);
   });
 });
-

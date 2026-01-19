@@ -1,4 +1,4 @@
-const { setTestDbPath, cleanupTestDbPath } = require("./testDb.cjs");
+import { cleanupTestDbPath, setTestDbPath } from "./testDb";
 
 function makeMockThread() {
   return {
@@ -52,7 +52,7 @@ describe("ticketService (thread creation)", () => {
       guild,
       user: { id: "u1", username: "UserName" },
       channel: { id: "any" },
-      inGuild: () => true,
+      isButton: () => true,
       reply: jest.fn().mockResolvedValue(null),
     };
 
@@ -74,4 +74,3 @@ describe("ticketService (thread creation)", () => {
     expect(interaction.reply).toHaveBeenCalled();
   });
 });
-

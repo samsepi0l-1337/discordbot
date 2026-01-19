@@ -1,4 +1,4 @@
-const { setTestDbPath, cleanupTestDbPath } = require("./testDb.cjs");
+import { cleanupTestDbPath, setTestDbPath } from "./testDb";
 
 describe("ticketService (db-level)", () => {
   beforeEach(() => {
@@ -36,4 +36,3 @@ describe("ticketService (db-level)", () => {
     expect(typeof row.closed_at).toBe("number");
   });
 });
-

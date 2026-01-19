@@ -1,21 +1,20 @@
-const fs = require("node:fs");
-const path = require("node:path");
+import fs from "node:fs";
+import path from "node:path";
+import { closeDb } from "../src/config/db";
 
-const { closeDb } = require("../src/config/db");
-
-function createTempDbPath(testName) {
+function createTempDbPath(testName: string) {
   const dir = path.join(__dirname, "..", ".tmp", "jest-db", testName);
   fs.mkdirSync(dir, { recursive: true });
   return path.join(dir, "bot.db");
 }
 
-function setTestDbPath(testName) {
+export function setTestDbPath(testName: string) {
   process.env.BOT_DB_PATH = createTempDbPath(testName);
   closeDb();
-  return process.env.BOT_DB_PATH;
+  return process.env.BOT_DB_PATH!;
 }
 
-function cleanupTestDbPath() {
+export function cleanupTestDbPath() {
   const dbPath = process.env.BOT_DB_PATH;
   closeDb();
   if (!dbPath) return;
@@ -26,6 +25,3 @@ function cleanupTestDbPath() {
   }
   delete process.env.BOT_DB_PATH;
 }
-
-module.exports = { setTestDbPath, cleanupTestDbPath };
-
