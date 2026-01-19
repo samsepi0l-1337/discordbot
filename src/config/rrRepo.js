@@ -46,7 +46,7 @@ function addRule(rule) {
     rule.emojiKey,
     rule.roleId,
     rule.type,
-    rule.toggleGroup || null,
+    rule.toggleGroup || "",
     now
   );
 }

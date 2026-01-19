@@ -4,6 +4,25 @@ const Database = require("better-sqlite3");
 
 let db;
 
+function resolveDbPath() {
+  // For tests/CI: allow overriding DB location.
+  const explicitPath =
+    process.env.BOT_DB_PATH ||
+    process.env.DISCORD_BOT_DB_PATH ||
+    process.env.DB_PATH ||
+    null;
+  if (explicitPath) return explicitPath;
+  const dataDir = path.join(__dirname, "..", "..", "data");
+  return path.join(dataDir, "bot.db");
+}
+
+function ensureDbDir(dbPath) {
+  const dir = path.dirname(dbPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
 function ensureGuildConfigColumns(dbInstance) {
   const columns = dbInstance
     .prepare("PRAGMA table_info(guild_config)")
@@ -83,11 +102,8 @@ function ensureTicketSessionColumns(dbInstance) {
 
 function getDb() {
   if (db) return db;
-  const dataDir = path.join(__dirname, "..", "..", "data");
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-  const dbPath = path.join(dataDir, "bot.db");
+  const dbPath = resolveDbPath();
+  ensureDbDir(dbPath);
   db = new Database(dbPath);
   db.pragma("journal_mode = WAL");
   db.exec(`
@@ -112,7 +128,6 @@ function getDb() {
       ticket_recipient_id TEXT
     );
   `);
-  ensureTicketSessionColumns(db);
   ensureGuildConfigColumns(db);
   db.exec(`
     CREATE TABLE IF NOT EXISTS ticket_sessions (
@@ -129,6 +144,7 @@ function getDb() {
       updated_at INTEGER NOT NULL
     );
   `);
+  ensureTicketSessionColumns(db);
   db.exec(`
     CREATE TABLE IF NOT EXISTS ticket_forwarded_messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,11 +170,13 @@ function getDb() {
       emoji_key TEXT NOT NULL,
       role_id TEXT NOT NULL,
       type TEXT NOT NULL,
-      toggle_group TEXT,
+      toggle_group TEXT NOT NULL DEFAULT '',
       created_at INTEGER NOT NULL,
       UNIQUE(guild_id, message_id, emoji_key, role_id, type, toggle_group)
     );
   `);
+  // Normalize existing rows from older schema where toggle_group could be NULL.
+  db.exec(`UPDATE rr_rules SET toggle_group = '' WHERE toggle_group IS NULL;`);
   db.exec(`
     CREATE TABLE IF NOT EXISTS rr_settings (
       guild_id TEXT PRIMARY KEY,
@@ -211,4 +229,13 @@ function getDb() {
   return db;
 }
 
-module.exports = { getDb };
+function closeDb() {
+  if (!db) return;
+  try {
+    db.close();
+  } finally {
+    db = null;
+  }
+}
+
+module.exports = { getDb, closeDb };
