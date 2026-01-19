@@ -16,6 +16,16 @@ function ensureGuildConfigColumns(dbInstance) {
   if (!columns.includes("ticket_recipient_id")) {
     missing.push("ALTER TABLE guild_config ADD COLUMN ticket_recipient_id TEXT");
   }
+  if (!columns.includes("grant_on_post_message_id")) {
+    missing.push(
+      "ALTER TABLE guild_config ADD COLUMN grant_on_post_message_id TEXT"
+    );
+  }
+  if (!columns.includes("grant_on_post_emoji_map")) {
+    missing.push(
+      "ALTER TABLE guild_config ADD COLUMN grant_on_post_emoji_map TEXT"
+    );
+  }
   for (const statement of missing) {
     dbInstance.exec(statement);
   }
@@ -39,6 +49,8 @@ function getDb() {
       intro_role_id TEXT,
       grant_on_post_channel_id TEXT,
       grant_on_post_role_id TEXT,
+      grant_on_post_message_id TEXT,
+      grant_on_post_emoji_map TEXT,
       check_emoji TEXT DEFAULT '✅',
       ticket_channel_id TEXT,
       ticket_recipient_id TEXT

@@ -1,7 +1,5 @@
 const { getDb } = require("./db");
 
-const DEFAULT_CHECK_EMOJI = "✅";
-
 function ensureGuildRow(guildId) {
   const db = getDb();
   db.prepare("INSERT OR IGNORE INTO guild_config (guild_id) VALUES (?)").run(
@@ -21,6 +19,8 @@ function getConfig(guildId) {
              intro_role_id,
              grant_on_post_channel_id,
              grant_on_post_role_id,
+             grant_on_post_message_id,
+             grant_on_post_emoji_map,
              check_emoji,
              ticket_channel_id,
              ticket_recipient_id
@@ -32,14 +32,22 @@ function getConfig(guildId) {
   if (!row) return null;
   const recipientIds = row.ticket_recipient_id
     ? row.ticket_recipient_id
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean)
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean)
     : [];
+  let grantOnPostEmojiMap = {};
+  if (row.grant_on_post_emoji_map) {
+    try {
+      grantOnPostEmojiMap = JSON.parse(row.grant_on_post_emoji_map);
+    } catch {
+      grantOnPostEmojiMap = {};
+    }
+  }
   return {
     ...row,
-    check_emoji: row.check_emoji || DEFAULT_CHECK_EMOJI,
     ticket_recipient_ids: recipientIds,
+    grant_on_post_emoji_map: grantOnPostEmojiMap,
   };
 }
 
@@ -60,33 +68,31 @@ function setBaseRole(guildId, roleId) {
   );
 }
 
-function setIntro(guildId, channelId, roleId, emoji) {
+function setIntro(guildId, channelId, roleId) {
   ensureGuildRow(guildId);
-  const current = getConfig(guildId);
-  const finalEmoji = emoji || current?.check_emoji || DEFAULT_CHECK_EMOJI;
   const db = getDb();
   db.prepare(
     `
     UPDATE guild_config
     SET intro_channel_id = ?,
-        intro_role_id = ?,
-        check_emoji = ?
+        intro_role_id = ?
     WHERE guild_id = ?
   `
-  ).run(channelId, roleId, finalEmoji, guildId);
+  ).run(channelId, roleId, guildId);
 }
 
-function setGrantOnPost(guildId, channelId, roleId) {
+function setGrantOnPost(guildId, channelId, messageId, emojiRoleMap) {
   ensureGuildRow(guildId);
   const db = getDb();
   db.prepare(
     `
     UPDATE guild_config
     SET grant_on_post_channel_id = ?,
-        grant_on_post_role_id = ?
+        grant_on_post_message_id = ?,
+        grant_on_post_emoji_map = ?
     WHERE guild_id = ?
   `
-  ).run(channelId, roleId, guildId);
+  ).run(channelId, messageId, JSON.stringify(emojiRoleMap || {}), guildId);
 }
 
 function setTicketChannel(guildId, channelId) {
@@ -134,7 +140,8 @@ function clearField(guildId, fieldKey) {
     intro_channel: "intro_channel_id",
     intro_role: "intro_role_id",
     grant_on_post_channel: "grant_on_post_channel_id",
-    grant_on_post_role: "grant_on_post_role_id",
+    grant_on_post_message: "grant_on_post_message_id",
+    grant_on_post_emojis: "grant_on_post_emoji_map",
     check_emoji: "check_emoji",
     ticket_channel: "ticket_channel_id",
     ticket_recipient: "ticket_recipient_id",
@@ -155,7 +162,6 @@ function resetConfig(guildId) {
 }
 
 module.exports = {
-  DEFAULT_CHECK_EMOJI,
   getConfig,
   setJoinDelayMs,
   setBaseRole,
