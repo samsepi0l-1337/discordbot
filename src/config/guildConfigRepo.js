@@ -21,9 +21,7 @@ function getConfig(guildId) {
              intro_role_id,
              grant_on_post_channel_id,
              grant_on_post_role_id,
-             check_emoji,
-             ticket_channel_id,
-             ticket_recipient_id
+             check_emoji
       FROM guild_config
       WHERE guild_id = ?
     `
@@ -33,27 +31,7 @@ function getConfig(guildId) {
   return {
     ...row,
     check_emoji: row.check_emoji || DEFAULT_CHECK_EMOJI,
-    ticket_recipient_ids: normalizeRecipients(row.ticket_recipient_id),
   };
-}
-
-function normalizeRecipients(rawValue) {
-  if (!rawValue) return [];
-  if (Array.isArray(rawValue)) return rawValue.filter(Boolean);
-  if (typeof rawValue === "string") {
-    try {
-      const parsed = JSON.parse(rawValue);
-      if (Array.isArray(parsed)) {
-        return parsed.map(String).filter(Boolean);
-      }
-    } catch {
-      return rawValue
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean);
-    }
-  }
-  return [];
 }
 
 function setJoinDelayMs(guildId, joinDelayMs) {
@@ -102,29 +80,6 @@ function setGrantOnPost(guildId, channelId, roleId) {
   ).run(channelId, roleId, guildId);
 }
 
-function setTicketChannel(guildId, channelId) {
-  ensureGuildRow(guildId);
-  const db = getDb();
-  db.prepare(
-    "UPDATE guild_config SET ticket_channel_id = ? WHERE guild_id = ?"
-  ).run(channelId, guildId);
-}
-
-function setTicketRecipient(guildId, userId) {
-  return setTicketRecipients(guildId, [userId]);
-}
-
-function setTicketRecipients(guildId, userIds) {
-  ensureGuildRow(guildId);
-  const db = getDb();
-  const normalized = Array.from(
-    new Set((userIds || []).map(String).filter(Boolean))
-  );
-  db.prepare(
-    "UPDATE guild_config SET ticket_recipient_id = ? WHERE guild_id = ?"
-  ).run(JSON.stringify(normalized), guildId);
-}
-
 function clearField(guildId, fieldKey) {
   const fieldMap = {
     base_role: "base_role_id",
@@ -134,8 +89,6 @@ function clearField(guildId, fieldKey) {
     grant_on_post_channel: "grant_on_post_channel_id",
     grant_on_post_role: "grant_on_post_role_id",
     check_emoji: "check_emoji",
-    ticket_channel: "ticket_channel_id",
-    ticket_recipient: "ticket_recipient_id",
   };
   const column = fieldMap[fieldKey];
   if (!column) return false;
@@ -159,9 +112,6 @@ module.exports = {
   setBaseRole,
   setIntro,
   setGrantOnPost,
-  setTicketChannel,
-  setTicketRecipient,
-  setTicketRecipients,
   clearField,
   resetConfig,
 };
