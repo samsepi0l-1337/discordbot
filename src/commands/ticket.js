@@ -353,11 +353,19 @@ module.exports = {
       }
       const user = interaction.options.getUser("user", true);
       try {
-        await interaction.channel.permissionOverwrites.edit(user.id, {
-          ViewChannel: sub === "add",
-          SendMessages: sub === "add",
-          ReadMessageHistory: sub === "add",
-        });
+        if (interaction.channel?.isThread?.()) {
+          if (sub === "add") {
+            await interaction.channel.members.add(user.id);
+          } else {
+            await interaction.channel.members.remove(user.id);
+          }
+        } else {
+          await interaction.channel.permissionOverwrites.edit(user.id, {
+            ViewChannel: sub === "add",
+            SendMessages: sub === "add",
+            ReadMessageHistory: sub === "add",
+          });
+        }
       } catch {
         await interaction.reply({
           content: "권한 변경에 실패했어요.",

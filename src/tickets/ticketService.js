@@ -3,7 +3,6 @@ const {
   ButtonBuilder,
   ButtonStyle,
   ChannelType,
-  PermissionsBitField,
 } = require("discord.js");
 const { getDb } = require("../config/db");
 const { getConfig } = require("../config/guildConfigRepo");
@@ -22,7 +21,7 @@ function buildTicketPanelPayload() {
   return {
     content:
       "문의가 필요하시면 아래 버튼을 눌러 티켓을 생성해주세요.\n" +
-      "티켓은 서버 내 전용 채널로 생성되며, 지원팀만 볼 수 있어요.",
+      "티켓은 비공개 스레드로 생성되며, 지원팀만 볼 수 있어요.",
     components: [row],
   };
 }
@@ -134,16 +133,11 @@ function isTicketSupport(config, member) {
 }
 
 async function createTicketChannelTicket(interaction, config) {
-  if (!config?.ticket_channel_id) {
+  const panelChannelId = config?.ticket_channel_id;
+  const panelMessageId = config?.ticket_panel_message_id;
+  if (!panelChannelId) {
     await interaction.reply({
       content: "티켓 패널 채널이 설정되지 않았어요. 관리자에게 문의해주세요.",
-      ephemeral: true,
-    });
-    return;
-  }
-  if (!config?.ticket_category_id) {
-    await interaction.reply({
-      content: "티켓 카테고리가 설정되지 않았어요. 관리자에게 문의해주세요.",
       ephemeral: true,
     });
     return;
@@ -171,71 +165,59 @@ async function createTicketChannelTicket(interaction, config) {
     return;
   }
 
-  const guild = interaction.guild;
-  const category = await guild.channels
-    .fetch(config.ticket_category_id)
+  const panelChannel = await interaction.guild.channels
+    .fetch(panelChannelId)
     .catch(() => null);
-  if (!category || category.type !== ChannelType.GuildCategory) {
+  if (!panelChannel?.isTextBased()) {
     await interaction.reply({
-      content: "티켓 카테고리를 찾을 수 없어요. 설정을 확인해주세요.",
+      content: "티켓 패널 채널을 찾을 수 없어요. 설정을 확인해주세요.",
       ephemeral: true,
     });
     return;
   }
 
-  const overwrites = [
-    {
-      id: guild.roles.everyone.id,
-      deny: [PermissionsBitField.Flags.ViewChannel],
-    },
-    {
-      id: interaction.user.id,
-      allow: [
-        PermissionsBitField.Flags.ViewChannel,
-        PermissionsBitField.Flags.SendMessages,
-        PermissionsBitField.Flags.ReadMessageHistory,
-        PermissionsBitField.Flags.AttachFiles,
-        PermissionsBitField.Flags.EmbedLinks,
-      ],
-    },
-  ];
-  for (const roleId of config.ticket_support_role_ids || []) {
-    overwrites.push({
-      id: roleId,
-      allow: [
-        PermissionsBitField.Flags.ViewChannel,
-        PermissionsBitField.Flags.SendMessages,
-        PermissionsBitField.Flags.ReadMessageHistory,
-        PermissionsBitField.Flags.ManageMessages,
-      ],
+  const panelMessage =
+    interaction.message ||
+    (panelMessageId
+      ? await panelChannel.messages.fetch(panelMessageId).catch(() => null)
+      : null);
+  if (!panelMessage) {
+    await interaction.reply({
+      content: "티켓 패널 메시지를 찾을 수 없어요. 패널을 다시 게시해주세요.",
+      ephemeral: true,
     });
-  }
-  for (const userId of config.ticket_support_user_ids || []) {
-    overwrites.push({
-      id: userId,
-      allow: [
-        PermissionsBitField.Flags.ViewChannel,
-        PermissionsBitField.Flags.SendMessages,
-        PermissionsBitField.Flags.ReadMessageHistory,
-      ],
-    });
+    return;
   }
 
   const safeName = interaction.user.username
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, "-")
     .slice(0, 20);
-  const channelName = `ticket-${safeName || "user"}`;
-  const channel = await guild.channels.create({
-    name: channelName,
-    type: ChannelType.GuildText,
-    parent: category.id,
-    permissionOverwrites: overwrites,
-    topic: `Ticket opener=${interaction.user.id}`,
+  const threadName = `ticket-${safeName || "user"}`;
+  const thread = await panelMessage.startThread({
+    name: threadName,
+    type: ChannelType.PrivateThread,
+    autoArchiveDuration: 1440,
     reason: "Ticket created",
   });
 
-  const ticketId = createTicketSession(guild.id, interaction.user.id, channel.id);
+  await thread.members.add(interaction.user.id).catch(() => null);
+  for (const userId of config.ticket_support_user_ids || []) {
+    await thread.members.add(userId).catch(() => null);
+  }
+  for (const roleId of config.ticket_support_role_ids || []) {
+    const role = interaction.guild.roles.cache.get(roleId);
+    if (!role) continue;
+    for (const member of role.members.values()) {
+      await thread.members.add(member.id).catch(() => null);
+    }
+  }
+
+  const ticketId = createTicketSession(
+    interaction.guild.id,
+    interaction.user.id,
+    thread.id
+  );
 
   const closeButton = new ButtonBuilder()
     .setCustomId(TICKET_CLOSE_BUTTON_ID)
@@ -247,7 +229,7 @@ async function createTicketChannelTicket(interaction, config) {
     .setStyle(ButtonStyle.Secondary);
   const row = new ActionRowBuilder().addComponents(claimButton, closeButton);
 
-  await channel.send({
+  await thread.send({
     content: [
       `티켓 #${ticketId}가 생성되었습니다.`,
       `생성자: <@${interaction.user.id}>`,
@@ -257,7 +239,7 @@ async function createTicketChannelTicket(interaction, config) {
   });
 
   await interaction.reply({
-    content: `티켓이 생성되었어요. <#${channel.id}>`,
+    content: `티켓이 생성되었어요. <#${thread.id}>`,
     ephemeral: true,
   });
 }
@@ -300,14 +282,9 @@ async function handleTicketCloseButton(interaction) {
   touchTicket(ticket.id);
 
   try {
-    const openerOverwrite = interaction.channel.permissionOverwrites.cache.get(ticket.opener_id);
-    await interaction.channel.permissionOverwrites.edit(ticket.opener_id, {
-      ViewChannel: true,
-      SendMessages: false,
-      ReadMessageHistory: true,
-    });
-    if (openerOverwrite) {
-      // noop, edit already applied
+    if (interaction.channel?.isThread?.()) {
+      await interaction.channel.setLocked(true);
+      await interaction.channel.setArchived(true);
     }
   } catch {
     // ignore
@@ -329,12 +306,6 @@ async function handleTicketCloseButton(interaction) {
         ],
       });
     }
-  }
-
-  try {
-    await interaction.channel.setName(`closed-${interaction.channel.name}`.slice(0, 100));
-  } catch {
-    // ignore
   }
 
   await interaction.reply({ content: "티켓을 닫았어요.", ephemeral: true });
