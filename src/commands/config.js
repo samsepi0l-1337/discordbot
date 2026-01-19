@@ -340,7 +340,7 @@ module.exports = {
       const user = interaction.options.getUser("user", true);
       addTicketRecipient(guildId, user.id);
       await interaction.reply({
-        content: `티켓 담당자에 ${formatUser(user.id)}를 추가했어요.`,
+        content: `티켓 지원 유저에 ${formatUser(user.id)}를 추가했어요.`,
         ephemeral: true,
       });
       return;
@@ -350,7 +350,7 @@ module.exports = {
       const user = interaction.options.getUser("user", true);
       removeTicketRecipient(guildId, user.id);
       await interaction.reply({
-        content: `티켓 담당자에서 ${formatUser(user.id)}를 제거했어요.`,
+        content: `티켓 지원 유저에서 ${formatUser(user.id)}를 제거했어요.`,
         ephemeral: true,
       });
       return;
@@ -373,7 +373,7 @@ module.exports = {
         `- command_roles: ${formatRoles(config.command_role_ids)}`,
         `- command_users: ${formatUsersList(config.command_user_ids)}`,
         `- ticket_channel: ${formatChannel(config.ticket_channel_id)}`,
-        `- ticket_recipient: ${formatUsers(config.ticket_recipient_ids)}`,
+        `- ticket_support_users: ${formatUsers(config.ticket_support_user_ids)}`,
       ];
       await interaction.reply({
         content: `현재 설정\n${lines.join("\n")}`,

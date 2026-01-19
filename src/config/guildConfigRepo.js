@@ -25,6 +25,10 @@ function getConfig(guildId) {
              command_user_ids,
              check_emoji,
              ticket_channel_id,
+             ticket_panel_message_id,
+             ticket_category_id,
+             ticket_transcript_channel_id,
+             ticket_support_role_ids,
              ticket_recipient_id
       FROM guild_config
       WHERE guild_id = ?
@@ -50,6 +54,12 @@ function getConfig(guildId) {
       .map((value) => value.trim())
       .filter(Boolean)
     : [];
+  const ticketSupportRoleIds = row.ticket_support_role_ids
+    ? row.ticket_support_role_ids
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean)
+    : [];
   let grantOnPostEmojiMap = {};
   if (row.grant_on_post_emoji_map) {
     try {
@@ -60,7 +70,8 @@ function getConfig(guildId) {
   }
   return {
     ...row,
-    ticket_recipient_ids: recipientIds,
+    ticket_support_user_ids: recipientIds,
+    ticket_support_role_ids: ticketSupportRoleIds,
     command_role_ids: commandRoleIds,
     command_user_ids: commandUserIds,
     grant_on_post_emoji_map: grantOnPostEmojiMap,
@@ -105,6 +116,54 @@ function setTicketChannel(guildId, channelId) {
   ).run(channelId, guildId);
 }
 
+function setTicketPanelMessage(guildId, messageId) {
+  ensureGuildRow(guildId);
+  const db = getDb();
+  db.prepare(
+    "UPDATE guild_config SET ticket_panel_message_id = ? WHERE guild_id = ?"
+  ).run(messageId, guildId);
+}
+
+function setTicketCategory(guildId, categoryId) {
+  ensureGuildRow(guildId);
+  const db = getDb();
+  db.prepare(
+    "UPDATE guild_config SET ticket_category_id = ? WHERE guild_id = ?"
+  ).run(categoryId, guildId);
+}
+
+function setTicketTranscriptChannel(guildId, channelId) {
+  ensureGuildRow(guildId);
+  const db = getDb();
+  db.prepare(
+    "UPDATE guild_config SET ticket_transcript_channel_id = ? WHERE guild_id = ?"
+  ).run(channelId, guildId);
+}
+
+function addTicketSupportRole(guildId, roleId) {
+  ensureGuildRow(guildId);
+  const current = getConfig(guildId);
+  const ids = current?.ticket_support_role_ids || [];
+  if (ids.includes(roleId)) return;
+  ids.push(roleId);
+  const db = getDb();
+  db.prepare(
+    "UPDATE guild_config SET ticket_support_role_ids = ? WHERE guild_id = ?"
+  ).run(ids.join(","), guildId);
+}
+
+function removeTicketSupportRole(guildId, roleId) {
+  ensureGuildRow(guildId);
+  const current = getConfig(guildId);
+  const ids = (current?.ticket_support_role_ids || []).filter(
+    (id) => id !== roleId
+  );
+  const db = getDb();
+  db.prepare(
+    "UPDATE guild_config SET ticket_support_role_ids = ? WHERE guild_id = ?"
+  ).run(ids.length ? ids.join(",") : null, guildId);
+}
+
 function setTicketRecipient(guildId, userId) {
   ensureGuildRow(guildId);
   const db = getDb();
@@ -116,7 +175,7 @@ function setTicketRecipient(guildId, userId) {
 function addTicketRecipient(guildId, userId) {
   ensureGuildRow(guildId);
   const current = getConfig(guildId);
-  const ids = current?.ticket_recipient_ids || [];
+  const ids = current?.ticket_support_user_ids || [];
   if (ids.includes(userId)) return;
   ids.push(userId);
   const db = getDb();
@@ -128,7 +187,7 @@ function addTicketRecipient(guildId, userId) {
 function removeTicketRecipient(guildId, userId) {
   ensureGuildRow(guildId);
   const current = getConfig(guildId);
-  const ids = (current?.ticket_recipient_ids || []).filter((id) => id !== userId);
+  const ids = (current?.ticket_support_user_ids || []).filter((id) => id !== userId);
   const db = getDb();
   db.prepare(
     "UPDATE guild_config SET ticket_recipient_id = ? WHERE guild_id = ?"
@@ -187,6 +246,10 @@ function clearField(guildId, fieldKey) {
     intro_role: "intro_role_id",
     check_emoji: "check_emoji",
     ticket_channel: "ticket_channel_id",
+    ticket_panel_message: "ticket_panel_message_id",
+    ticket_category: "ticket_category_id",
+    ticket_transcript_channel: "ticket_transcript_channel_id",
+    ticket_support_roles: "ticket_support_role_ids",
     ticket_recipient: "ticket_recipient_id",
     command_roles: "command_role_ids",
     command_users: "command_user_ids",
@@ -212,6 +275,11 @@ module.exports = {
   setBaseRole,
   setIntro,
   setTicketChannel,
+  setTicketPanelMessage,
+  setTicketCategory,
+  setTicketTranscriptChannel,
+  addTicketSupportRole,
+  removeTicketSupportRole,
   setTicketRecipient,
   addTicketRecipient,
   removeTicketRecipient,

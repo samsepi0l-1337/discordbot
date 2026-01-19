@@ -32,6 +32,50 @@ function ensureGuildConfigColumns(dbInstance) {
   if (!columns.includes("command_user_ids")) {
     missing.push("ALTER TABLE guild_config ADD COLUMN command_user_ids TEXT");
   }
+  if (!columns.includes("ticket_category_id")) {
+    missing.push("ALTER TABLE guild_config ADD COLUMN ticket_category_id TEXT");
+  }
+  if (!columns.includes("ticket_transcript_channel_id")) {
+    missing.push(
+      "ALTER TABLE guild_config ADD COLUMN ticket_transcript_channel_id TEXT"
+    );
+  }
+  if (!columns.includes("ticket_support_role_ids")) {
+    missing.push(
+      "ALTER TABLE guild_config ADD COLUMN ticket_support_role_ids TEXT"
+    );
+  }
+  if (!columns.includes("ticket_panel_message_id")) {
+    missing.push(
+      "ALTER TABLE guild_config ADD COLUMN ticket_panel_message_id TEXT"
+    );
+  }
+  for (const statement of missing) {
+    dbInstance.exec(statement);
+  }
+}
+
+function ensureTicketSessionColumns(dbInstance) {
+  const columns = dbInstance
+    .prepare("PRAGMA table_info(ticket_sessions)")
+    .all()
+    .map((row) => row.name);
+  const missing = [];
+  if (!columns.includes("channel_id")) {
+    missing.push("ALTER TABLE ticket_sessions ADD COLUMN channel_id TEXT");
+  }
+  if (!columns.includes("claimed_by_id")) {
+    missing.push("ALTER TABLE ticket_sessions ADD COLUMN claimed_by_id TEXT");
+  }
+  if (!columns.includes("closed_by_id")) {
+    missing.push("ALTER TABLE ticket_sessions ADD COLUMN closed_by_id TEXT");
+  }
+  if (!columns.includes("closed_reason")) {
+    missing.push("ALTER TABLE ticket_sessions ADD COLUMN closed_reason TEXT");
+  }
+  if (!columns.includes("closed_at")) {
+    missing.push("ALTER TABLE ticket_sessions ADD COLUMN closed_at INTEGER");
+  }
   for (const statement of missing) {
     dbInstance.exec(statement);
   }
@@ -61,15 +105,25 @@ function getDb() {
       command_user_ids TEXT,
       check_emoji TEXT DEFAULT '✅',
       ticket_channel_id TEXT,
+      ticket_panel_message_id TEXT,
+      ticket_category_id TEXT,
+      ticket_transcript_channel_id TEXT,
+      ticket_support_role_ids TEXT,
       ticket_recipient_id TEXT
     );
   `);
+  ensureTicketSessionColumns(db);
   ensureGuildConfigColumns(db);
   db.exec(`
     CREATE TABLE IF NOT EXISTS ticket_sessions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       guild_id TEXT NOT NULL,
       opener_id TEXT NOT NULL,
+      channel_id TEXT,
+      claimed_by_id TEXT,
+      closed_by_id TEXT,
+      closed_reason TEXT,
+      closed_at INTEGER,
       status TEXT NOT NULL DEFAULT 'open',
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
@@ -141,6 +195,10 @@ function getDb() {
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_ticket_sessions_opener
       ON ticket_sessions (opener_id, status, created_at);
+  `);
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_ticket_sessions_channel
+      ON ticket_sessions (guild_id, channel_id, status);
   `);
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_ticket_forwarded_staff_msg

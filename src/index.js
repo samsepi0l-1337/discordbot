@@ -11,8 +11,9 @@ const {
 const { getConfig } = require("./config/guildConfigRepo");
 const {
   TICKET_CREATE_BUTTON_ID,
-  createTicketSession,
-  closeTicketSession,
+  createTicketChannelTicket,
+  handleTicketCloseButton,
+  handleTicketClaimButton,
   purgeOldTickets,
 } = require("./tickets/ticketService");
 
@@ -100,7 +101,6 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   if (!interaction.isButton()) return;
-  if (interaction.customId !== TICKET_CREATE_BUTTON_ID) return;
 
   if (!interaction.inGuild()) {
     await interaction.reply({
@@ -110,41 +110,30 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  const config = getConfig(interaction.guild.id);
-  if (!config?.ticket_recipient_ids?.length) {
-    await interaction.reply({
-      content: "티켓 담당자가 설정되지 않았어요. 관리자에게 문의해주세요.",
-      ephemeral: true,
-    });
+  if (interaction.customId === TICKET_CREATE_BUTTON_ID) {
+    const config = getConfig(interaction.guild.id);
+    try {
+      await createTicketChannelTicket(interaction, config);
+    } catch (error) {
+      console.warn("[ticket-create] Failed:", error);
+      const message = "티켓 생성에 실패했어요. 권한/설정을 확인해주세요.";
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp({ content: message, ephemeral: true });
+      } else {
+        await interaction.reply({ content: message, ephemeral: true });
+      }
+    }
     return;
   }
 
-  let ticketId = null;
-  try {
-    ticketId = createTicketSession(interaction.guild.id, interaction.user.id);
-    await interaction.user.send({
-      content: [
-        "티켓이 생성되었습니다.",
-        "이 DM에 메시지를 작성하면 담당자에게 전달됩니다.",
-        "형식: 메시지: (작성 내용)",
-      ].join("\n"),
-    });
-    await interaction.reply({
-      content: "DM을 확인해주세요. 안내 메시지를 보냈어요.",
-      ephemeral: true,
-    });
-  } catch (error) {
-    console.warn("[ticket-create] Failed to start DM:", error);
-    if (ticketId) {
-      closeTicketSession(ticketId);
-    }
-    const message =
-      "DM 전송에 실패했어요. DM을 허용했는지 확인한 뒤 다시 시도해주세요.";
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ content: message, ephemeral: true });
-    } else {
-      await interaction.reply({ content: message, ephemeral: true });
-    }
+  if (interaction.customId === "ticket_close") {
+    await handleTicketCloseButton(interaction);
+    return;
+  }
+
+  if (interaction.customId === "ticket_claim" || interaction.customId === "ticket_unclaim") {
+    await handleTicketClaimButton(interaction);
+    return;
   }
 });
 
