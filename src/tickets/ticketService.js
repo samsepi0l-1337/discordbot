@@ -50,6 +50,19 @@ function getLatestOpenTicketForUser(openerId) {
     .get(openerId);
 }
 
+function getTicketById(ticketId) {
+  const db = getDb();
+  return db
+    .prepare(
+      `
+      SELECT *
+      FROM ticket_sessions
+      WHERE id = ?
+    `
+    )
+    .get(ticketId);
+}
+
 function touchTicket(ticketId) {
   const db = getDb();
   db.prepare("UPDATE ticket_sessions SET updated_at = ? WHERE id = ?").run(
@@ -94,6 +107,7 @@ module.exports = {
   postTicketPanel,
   createTicketSession,
   getLatestOpenTicketForUser,
+  getTicketById,
   touchTicket,
   closeTicketSession,
   storeForwardedMessage,

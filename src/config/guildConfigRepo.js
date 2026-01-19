@@ -30,9 +30,16 @@ function getConfig(guildId) {
     )
     .get(guildId);
   if (!row) return null;
+  const recipientIds = row.ticket_recipient_id
+    ? row.ticket_recipient_id
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean)
+    : [];
   return {
     ...row,
     check_emoji: row.check_emoji || DEFAULT_CHECK_EMOJI,
+    ticket_recipient_ids: recipientIds,
   };
 }
 
@@ -98,6 +105,28 @@ function setTicketRecipient(guildId, userId) {
   ).run(userId, guildId);
 }
 
+function addTicketRecipient(guildId, userId) {
+  ensureGuildRow(guildId);
+  const current = getConfig(guildId);
+  const ids = current?.ticket_recipient_ids || [];
+  if (ids.includes(userId)) return;
+  ids.push(userId);
+  const db = getDb();
+  db.prepare(
+    "UPDATE guild_config SET ticket_recipient_id = ? WHERE guild_id = ?"
+  ).run(ids.join(","), guildId);
+}
+
+function removeTicketRecipient(guildId, userId) {
+  ensureGuildRow(guildId);
+  const current = getConfig(guildId);
+  const ids = (current?.ticket_recipient_ids || []).filter((id) => id !== userId);
+  const db = getDb();
+  db.prepare(
+    "UPDATE guild_config SET ticket_recipient_id = ? WHERE guild_id = ?"
+  ).run(ids.length ? ids.join(",") : null, guildId);
+}
+
 function clearField(guildId, fieldKey) {
   const fieldMap = {
     base_role: "base_role_id",
@@ -134,6 +163,8 @@ module.exports = {
   setGrantOnPost,
   setTicketChannel,
   setTicketRecipient,
+  addTicketRecipient,
+  removeTicketRecipient,
   clearField,
   resetConfig,
 };

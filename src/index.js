@@ -81,7 +81,7 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   const config = getConfig(interaction.guild.id);
-  if (!config?.ticket_recipient_id) {
+  if (!config?.ticket_recipient_ids?.length) {
     await interaction.reply({
       content: "티켓 담당자가 설정되지 않았어요. 관리자에게 문의해주세요.",
       ephemeral: true,

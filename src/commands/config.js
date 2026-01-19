@@ -12,6 +12,8 @@ const {
   setGrantOnPost,
   setTicketChannel,
   setTicketRecipient,
+  addTicketRecipient,
+  removeTicketRecipient,
   clearField,
   resetConfig,
 } = require("../config/guildConfigRepo");
@@ -27,6 +29,11 @@ function formatChannel(id) {
 
 function formatUser(id) {
   return id ? `<@${id}>` : "미설정";
+}
+
+function formatUsers(ids) {
+  if (!ids?.length) return "미설정";
+  return ids.map((id) => `<@${id}>`).join(", ");
 }
 
 function formatSeconds(ms) {
@@ -109,6 +116,14 @@ module.exports = {
       sub
         .setName("set-ticket-recipient")
         .setDescription("티켓 메시지를 받을 담당자 설정")
+        .addUserOption((option) =>
+          option.setName("user").setDescription("담당자").setRequired(true)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("remove-ticket-recipient")
+        .setDescription("티켓 담당자 제거")
         .addUserOption((option) =>
           option.setName("user").setDescription("담당자").setRequired(true)
         )
@@ -228,8 +243,8 @@ module.exports = {
         content: panelPosted
           ? `티켓 채널을 ${formatChannel(channel.id)}로 설정하고 패널을 게시했어요.`
           : `티켓 채널을 ${formatChannel(
-              channel.id
-            )}로 설정했어요. 패널 게시에 실패했으니 채널 권한을 확인해주세요.`,
+            channel.id
+          )}로 설정했어요. 패널 게시에 실패했으니 채널 권한을 확인해주세요.`,
         ephemeral: true,
       });
       return;
@@ -237,9 +252,19 @@ module.exports = {
 
     if (sub === "set-ticket-recipient") {
       const user = interaction.options.getUser("user", true);
-      setTicketRecipient(guildId, user.id);
+      addTicketRecipient(guildId, user.id);
       await interaction.reply({
-        content: `티켓 담당자를 ${formatUser(user.id)}로 설정했어요.`,
+        content: `티켓 담당자에 ${formatUser(user.id)}를 추가했어요.`,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    if (sub === "remove-ticket-recipient") {
+      const user = interaction.options.getUser("user", true);
+      removeTicketRecipient(guildId, user.id);
+      await interaction.reply({
+        content: `티켓 담당자에서 ${formatUser(user.id)}를 제거했어요.`,
         ephemeral: true,
       });
       return;
@@ -267,7 +292,7 @@ module.exports = {
         )}`,
         `- check_emoji: ${config.check_emoji || DEFAULT_CHECK_EMOJI}`,
         `- ticket_channel: ${formatChannel(config.ticket_channel_id)}`,
-        `- ticket_recipient: ${formatUser(config.ticket_recipient_id)}`,
+        `- ticket_recipient: ${formatUsers(config.ticket_recipient_ids)}`,
       ];
       await interaction.reply({
         content: `현재 설정\n${lines.join("\n")}`,
