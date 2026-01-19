@@ -1,21 +1,21 @@
-require("dotenv").config();
-
-const fs = require("node:fs");
-const path = require("node:path");
-const {
+import "dotenv/config";
+import fs from "node:fs";
+import path from "node:path";
+import {
   Client,
   Collection,
   GatewayIntentBits,
   Partials,
-} = require("discord.js");
-const { getConfig } = require("./config/guildConfigRepo");
-const {
+  type Interaction,
+} from "discord.js";
+import { getConfig } from "./config/guildConfigRepo";
+import {
   TICKET_CREATE_BUTTON_ID,
   createTicketChannelTicket,
   handleTicketCloseButton,
   handleTicketClaimButton,
   purgeOldTickets,
-} = require("./tickets/ticketService");
+} from "./tickets/ticketService";
 
 const DEFAULT_TICKET_RETENTION_DAYS = 30;
 const TICKET_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
@@ -81,7 +81,7 @@ for (const file of fs.readdirSync(eventsPath)) {
   client.on(event.name, (...args) => event.execute(...args));
 }
 
-client.on("interactionCreate", async (interaction) => {
+client.on("interactionCreate", async (interaction: Interaction) => {
   if (interaction.isChatInputCommand()) {
     const command = client.commands.get(interaction.commandName);
     if (!command) return;
@@ -89,8 +89,7 @@ client.on("interactionCreate", async (interaction) => {
       await command.execute(interaction);
     } catch (error) {
       console.error("Command error:", error);
-      const message =
-        "명령 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.";
+      const message = "명령 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.";
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp({ content: message, ephemeral: true });
       } else {
@@ -138,7 +137,7 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 client.once("ready", () => {
-  console.log(`Logged in as ${client.user.tag}`);
+  console.log(`Logged in as ${client.user?.tag}`);
   startTicketCleanup();
 });
 
