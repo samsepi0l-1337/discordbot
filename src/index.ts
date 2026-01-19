@@ -57,14 +57,19 @@ const client = new Client({
   partials: [Partials.Channel, Partials.Message, Partials.Reaction, Partials.User],
 });
 
-const commands = new Collection();
+type CommandHandler = {
+  data: { name: string };
+  execute: (interaction: Interaction) => Promise<void>;
+};
+
+const commands = new Collection<string, CommandHandler>();
 
 const commandsPath = path.join(__dirname, "commands");
 for (const file of fs.readdirSync(commandsPath)) {
   if (!file.endsWith(".js")) continue;
-  const command = require(path.join(commandsPath, file));
+  const command = require(path.join(commandsPath, file)) as Partial<CommandHandler>;
   if (!command?.data || !command?.execute) continue;
-  commands.set(command.data.name, command);
+  commands.set(command.data.name, command as CommandHandler);
 }
 
 const eventsPath = path.join(__dirname, "events");

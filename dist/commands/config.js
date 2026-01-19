@@ -76,7 +76,8 @@ module.exports = {
             });
             return;
         }
-        const guildId = interaction.guild.id;
+        const guild = interaction.guild;
+        const guildId = guild.id;
         const config = (0, guildConfigRepo_1.getConfig)(guildId);
         const hasAdmin = interaction.memberPermissions?.has(discord_js_1.PermissionsBitField.Flags.ManageGuild);
         const allowed = (0, permissions_1.canManageCommands)(interaction.member, interaction.user.id, config || {}, Boolean(hasAdmin));

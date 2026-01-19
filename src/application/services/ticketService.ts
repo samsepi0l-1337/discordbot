@@ -108,7 +108,7 @@ export class TicketService {
       type: ChannelType.PrivateThread,
       autoArchiveDuration: 1440,
       reason: "Ticket created",
-    });
+    } as any);
 
     await thread.members.add(interaction.user.id).catch(() => null);
     for (const userId of config.ticket_support_user_ids || []) {

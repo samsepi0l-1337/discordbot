@@ -8,7 +8,7 @@ const node_fs_1 = __importDefault(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const discord_js_1 = require("discord.js");
 const guildConfigRepo_1 = require("./config/guildConfigRepo");
-const ticketService_1 = require("./tickets/ticketService");
+const ticketService = require("./tickets/ticketService");
 const DEFAULT_TICKET_RETENTION_DAYS = 30;
 const TICKET_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 function getTicketRetentionMs() {
@@ -20,7 +20,7 @@ function startTicketCleanup() {
     const retentionMs = getTicketRetentionMs();
     const runCleanup = () => {
         try {
-            const result = (0, ticketService_1.purgeOldTickets)(retentionMs);
+            const result = ticketService.purgeOldTickets(retentionMs);
             if (result.sessionsDeleted || result.forwardsDeleted) {
                 console.log(`[ticket-cleanup] sessions=${result.sessionsDeleted}, forwarded=${result.forwardsDeleted}`);
             }
@@ -49,7 +49,7 @@ const client = new discord_js_1.Client({
     ],
     partials: [discord_js_1.Partials.Channel, discord_js_1.Partials.Message, discord_js_1.Partials.Reaction, discord_js_1.Partials.User],
 });
-client.commands = new discord_js_1.Collection();
+const commands = new discord_js_1.Collection();
 const commandsPath = node_path_1.default.join(__dirname, "commands");
 for (const file of node_fs_1.default.readdirSync(commandsPath)) {
     if (!file.endsWith(".js"))
@@ -57,7 +57,7 @@ for (const file of node_fs_1.default.readdirSync(commandsPath)) {
     const command = require(node_path_1.default.join(commandsPath, file));
     if (!command?.data || !command?.execute)
         continue;
-    client.commands.set(command.data.name, command);
+    commands.set(command.data.name, command);
 }
 const eventsPath = node_path_1.default.join(__dirname, "events");
 for (const file of node_fs_1.default.readdirSync(eventsPath)) {
@@ -70,7 +70,7 @@ for (const file of node_fs_1.default.readdirSync(eventsPath)) {
 }
 client.on("interactionCreate", async (interaction) => {
     if (interaction.isChatInputCommand()) {
-        const command = client.commands.get(interaction.commandName);
+        const command = commands.get(interaction.commandName);
         if (!command)
             return;
         try {
@@ -97,10 +97,10 @@ client.on("interactionCreate", async (interaction) => {
         });
         return;
     }
-    if (interaction.customId === ticketService_1.TICKET_CREATE_BUTTON_ID) {
+    if (interaction.customId === ticketService.TICKET_CREATE_BUTTON_ID) {
         const config = (0, guildConfigRepo_1.getConfig)(interaction.guild.id);
         try {
-            await (0, ticketService_1.createTicketChannelTicket)(interaction, config);
+            await ticketService.createTicketChannelTicket(interaction, config);
         }
         catch (error) {
             console.warn("[ticket-create] Failed:", error);
@@ -115,11 +115,11 @@ client.on("interactionCreate", async (interaction) => {
         return;
     }
     if (interaction.customId === "ticket_close") {
-        await (0, ticketService_1.handleTicketCloseButton)(interaction);
+        await ticketService.handleTicketCloseButton(interaction);
         return;
     }
     if (interaction.customId === "ticket_claim" || interaction.customId === "ticket_unclaim") {
-        await (0, ticketService_1.handleTicketClaimButton)(interaction);
+        await ticketService.handleTicketClaimButton(interaction);
         return;
     }
 });

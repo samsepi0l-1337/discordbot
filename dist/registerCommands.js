@@ -14,6 +14,7 @@ if (!token || !clientId) {
     console.error("Missing DISCORD_TOKEN or CLIENT_ID in environment.");
     process.exit(1);
 }
+const resolvedClientId = clientId;
 const commands = [];
 const commandsPath = node_path_1.default.join(__dirname, "commands");
 for (const file of node_fs_1.default.readdirSync(commandsPath)) {
@@ -27,13 +28,13 @@ for (const file of node_fs_1.default.readdirSync(commandsPath)) {
 const rest = new discord_js_1.REST({ version: "10" }).setToken(token);
 async function register() {
     if (guildId) {
-        await rest.put(discord_js_1.Routes.applicationGuildCommands(clientId, guildId), {
+        await rest.put(discord_js_1.Routes.applicationGuildCommands(resolvedClientId, guildId), {
             body: commands,
         });
         console.log(`Registered guild commands for ${guildId}.`);
     }
     else {
-        await rest.put(discord_js_1.Routes.applicationCommands(clientId), { body: commands });
+        await rest.put(discord_js_1.Routes.applicationCommands(resolvedClientId), { body: commands });
         console.log("Registered global commands.");
     }
 }

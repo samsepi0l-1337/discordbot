@@ -37,6 +37,8 @@ describe("event: guildMemberAdd", () => {
 
     await handler.execute(member);
 
+    jest.advanceTimersByTime(0);
+
     // Immediate autorole
     expect(assignRole).toHaveBeenCalledWith(member, "auto1", "autorole");
 
