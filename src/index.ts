@@ -58,8 +58,9 @@ const client = new Client({
 });
 
 type CommandHandler = {
-  data: { name: string };
-  execute: (interaction: Interaction) => Promise<void>;
+  data?: { name: string };
+  contextMenu?: { name: string };
+  execute: (interaction: any) => Promise<void>;
 };
 
 const commands = new Collection<string, CommandHandler>();
@@ -67,9 +68,13 @@ const commands = new Collection<string, CommandHandler>();
 const commandsPath = path.join(__dirname, "commands");
 for (const file of fs.readdirSync(commandsPath)) {
   if (!file.endsWith(".js")) continue;
-  const command = require(path.join(commandsPath, file)) as Partial<CommandHandler>;
-  if (!command?.data || !command?.execute) continue;
-  commands.set(command.data.name, command as CommandHandler);
+  const command = require(path.join(commandsPath, file)) as CommandHandler;
+  if (command?.data?.name) {
+    commands.set(command.data.name, command);
+  }
+  if (command?.contextMenu?.name) {
+    commands.set(command.contextMenu.name, command);
+  }
 }
 
 const eventsPath = path.join(__dirname, "events");
@@ -81,18 +86,21 @@ for (const file of fs.readdirSync(eventsPath)) {
 }
 
 client.on("interactionCreate", async (interaction: Interaction) => {
-  if (interaction.isChatInputCommand()) {
-    const command = commands.get(interaction.commandName);
+  if (interaction.isChatInputCommand() || interaction.isContextMenuCommand()) {
+    const commandName = interaction.isChatInputCommand() 
+      ? interaction.commandName 
+      : (interaction as any).commandName;
+    const command = commands.get(commandName);
     if (!command) return;
     try {
       await command.execute(interaction);
     } catch (error) {
       console.error("Command error:", error);
       const message = "명령 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.";
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp({ content: message, ephemeral: true });
+      if ((interaction as any).replied || (interaction as any).deferred) {
+        await (interaction as any).followUp({ content: message, ephemeral: true });
       } else {
-        await interaction.reply({ content: message, ephemeral: true });
+        await (interaction as any).reply({ content: message, ephemeral: true });
       }
     }
     return;

@@ -1,7 +1,5 @@
 export type GuildConfig = {
   guild_id: string;
-  join_delay_ms?: number | null;
-  base_role_id?: string | null;
   intro_channel_id?: string | null;
   intro_role_id?: string | null;
   command_role_ids?: string[];
@@ -16,8 +14,6 @@ export type GuildConfig = {
 
 export interface GuildConfigRepoPort {
   getConfig(guildId: string): GuildConfig | null;
-  setJoinDelayMs(guildId: string, joinDelayMs: number): void;
-  setBaseRole(guildId: string, roleId: string): void;
   setIntro(guildId: string, channelId: string, roleId: string): void;
   setTicketChannel(guildId: string, channelId: string): void;
   setTicketPanelMessage(guildId: string, messageId: string): void;

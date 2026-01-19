@@ -20,19 +20,7 @@ function formatSeconds(ms) {
 module.exports = {
     data: new discord_js_1.SlashCommandBuilder()
         .setName("config")
-        .setDescription("온보딩/역할 부여 봇 설정")
-        .addSubcommand((sub) => sub
-        .setName("set-base-role")
-        .setDescription("입장 후 부여할 기본 권한 역할을 설정")
-        .addRoleOption((option) => option.setName("role").setDescription("역할").setRequired(true)))
-        .addSubcommand((sub) => sub
-        .setName("set-join-delay")
-        .setDescription("입장 후 역할 부여 딜레이(초)")
-        .addIntegerOption((option) => option
-        .setName("seconds")
-        .setDescription("딜레이(초)")
-        .setRequired(true)
-        .setMinValue(0)))
+        .setDescription("봇 관리 권한 및 기본 채널 설정")
         .addSubcommand((sub) => sub
         .setName("set-intro")
         .setDescription("자기소개 채널/역할 설정")
@@ -66,7 +54,7 @@ module.exports = {
         .setName("field")
         .setDescription("초기화 항목")
         .setRequired(true)
-        .addChoices({ name: "base_role", value: "base_role" }, { name: "join_delay", value: "join_delay" }, { name: "intro_channel", value: "intro_channel" }, { name: "intro_role", value: "intro_role" }, { name: "command_roles", value: "command_roles" }, { name: "command_users", value: "command_users" })))
+        .addChoices({ name: "intro_channel", value: "intro_channel" }, { name: "intro_role", value: "intro_role" }, { name: "command_roles", value: "command_roles" }, { name: "command_users", value: "command_users" })))
         .addSubcommand((sub) => sub.setName("reset").setDescription("모든 설정 초기화")),
     async execute(interaction) {
         if (!interaction.inGuild()) {
@@ -89,25 +77,6 @@ module.exports = {
             return;
         }
         const sub = interaction.options.getSubcommand();
-        if (sub === "set-base-role") {
-            const role = interaction.options.getRole("role", true);
-            (0, guildConfigRepo_1.setBaseRole)(guildId, role.id);
-            await interaction.reply({
-                content: `입장 기본 권한 역할을 ${(0, mentions_1.formatRole)(role.id)}로 설정했어요.`,
-                ephemeral: true,
-            });
-            return;
-        }
-        if (sub === "set-join-delay") {
-            const seconds = interaction.options.getInteger("seconds", true);
-            const ms = Math.max(0, Number(seconds) * 1000);
-            (0, guildConfigRepo_1.setJoinDelayMs)(guildId, ms);
-            await interaction.reply({
-                content: `입장 딜레이를 ${seconds}초로 설정했어요.`,
-                ephemeral: true,
-            });
-            return;
-        }
         if (sub === "set-intro") {
             const channel = interaction.options.getChannel("channel", true);
             const role = interaction.options.getRole("role", true);
@@ -192,8 +161,6 @@ module.exports = {
                 return;
             }
             const lines = [
-                `- base_role: ${(0, mentions_1.formatRole)(current.base_role_id)}`,
-                `- join_delay: ${formatSeconds(current.join_delay_ms)}`,
                 `- intro_channel: ${(0, mentions_1.formatChannel)(current.intro_channel_id)}`,
                 `- intro_role: ${(0, mentions_1.formatRole)(current.intro_role_id)}`,
                 `- command_roles: ${formatRoles(current.command_role_ids)}`,

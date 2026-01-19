@@ -8,16 +8,10 @@ describe("event: guildMemberAdd", () => {
     jest.useRealTimers();
   });
 
-  test("schedules base role after join_delay_ms, autoroles immediately, timed roles after delay", async () => {
+  test("schedules autoroles immediately, timed roles after delay", async () => {
     const assignRole = jest.fn().mockResolvedValue({ ok: true });
 
     jest.doMock("../../src/utils/discord", () => ({ assignRole }));
-    jest.doMock("../../src/config/guildConfigRepo", () => ({
-      getConfig: jest.fn(() => ({
-        join_delay_ms: 5000,
-        base_role_id: "baseRole",
-      })),
-    }));
     jest.doMock("../../src/config/autoroleRepo", () => ({
       listAutoroles: jest.fn(() => [
         { target: "user", role_id: "auto1" },
@@ -42,16 +36,11 @@ describe("event: guildMemberAdd", () => {
     // Immediate autorole
     expect(assignRole).toHaveBeenCalledWith(member, "auto1", "autorole");
 
-    // Not yet: timed1 and baseRole
+    // Not yet: timed1
     expect(assignRole).not.toHaveBeenCalledWith(member, "timed1", "timed-role");
-    expect(assignRole).not.toHaveBeenCalledWith(member, "baseRole", "base-role");
 
     // After 2s: timed
     jest.advanceTimersByTime(2000);
     expect(assignRole).toHaveBeenCalledWith(member, "timed1", "timed-role");
-
-    // After 5s: base role
-    jest.advanceTimersByTime(3000);
-    expect(assignRole).toHaveBeenCalledWith(member, "baseRole", "base-role");
   });
 });

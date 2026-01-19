@@ -21,5 +21,5 @@ const guildConfigRepo = new guildConfigRepo_1.SqliteGuildConfigRepo();
 const roleManager = new discordRoleManager_1.DiscordRoleManager();
 exports.reactionRoleService = new reactionRoleService_1.ReactionRoleService(rrRepo, rrSettingsRepo, roleManager);
 exports.voiceRoleService = new voiceRoleService_1.VoiceRoleService(voiceRoleRepo, roleManager);
-exports.onboardingService = new onboardingService_1.OnboardingService(guildConfigRepo, autoroleRepo, timedRoleRepo, roleManager, (fn, delayMs) => setTimeout(fn, delayMs));
+exports.onboardingService = new onboardingService_1.OnboardingService(autoroleRepo, timedRoleRepo, roleManager, (fn, delayMs) => setTimeout(fn, delayMs));
 exports.introRoleService = new introRoleService_1.IntroRoleService(guildConfigRepo, roleManager);

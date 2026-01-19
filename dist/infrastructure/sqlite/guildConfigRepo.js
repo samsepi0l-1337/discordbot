@@ -39,12 +39,6 @@ class SqliteGuildConfigRepo {
     getConfig(guildId) {
         return configRepo.getConfig(guildId);
     }
-    setJoinDelayMs(guildId, joinDelayMs) {
-        configRepo.setJoinDelayMs(guildId, joinDelayMs);
-    }
-    setBaseRole(guildId, roleId) {
-        configRepo.setBaseRole(guildId, roleId);
-    }
     setIntro(guildId, channelId, roleId) {
         configRepo.setIntro(guildId, channelId, roleId);
     }

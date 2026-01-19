@@ -27,7 +27,6 @@ export const reactionRoleService = new ReactionRoleService(
 export const voiceRoleService = new VoiceRoleService(voiceRoleRepo, roleManager);
 
 export const onboardingService = new OnboardingService(
-  guildConfigRepo,
   autoroleRepo,
   timedRoleRepo,
   roleManager,

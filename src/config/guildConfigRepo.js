@@ -13,8 +13,6 @@ function getConfig(guildId) {
     .prepare(
       `
       SELECT guild_id,
-             join_delay_ms,
-             base_role_id,
              intro_channel_id,
              intro_role_id,
              grant_on_post_channel_id,
@@ -76,23 +74,6 @@ function getConfig(guildId) {
     command_user_ids: commandUserIds,
     grant_on_post_emoji_map: grantOnPostEmojiMap,
   };
-}
-
-function setJoinDelayMs(guildId, joinDelayMs) {
-  ensureGuildRow(guildId);
-  const db = getDb();
-  db.prepare(
-    "UPDATE guild_config SET join_delay_ms = ? WHERE guild_id = ?"
-  ).run(joinDelayMs, guildId);
-}
-
-function setBaseRole(guildId, roleId) {
-  ensureGuildRow(guildId);
-  const db = getDb();
-  db.prepare("UPDATE guild_config SET base_role_id = ? WHERE guild_id = ?").run(
-    roleId,
-    guildId
-  );
 }
 
 function setIntro(guildId, channelId, roleId) {
@@ -240,8 +221,6 @@ function removeCommandUser(guildId, userId) {
 
 function clearField(guildId, fieldKey) {
   const fieldMap = {
-    base_role: "base_role_id",
-    join_delay: "join_delay_ms",
     intro_channel: "intro_channel_id",
     intro_role: "intro_role_id",
     check_emoji: "check_emoji",
@@ -271,8 +250,6 @@ function resetConfig(guildId) {
 
 module.exports = {
   getConfig,
-  setJoinDelayMs,
-  setBaseRole,
   setIntro,
   setTicketChannel,
   setTicketPanelMessage,

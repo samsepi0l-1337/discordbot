@@ -21,9 +21,12 @@ for (const file of node_fs_1.default.readdirSync(commandsPath)) {
     if (!file.endsWith(".js"))
         continue;
     const command = require(node_path_1.default.join(commandsPath, file));
-    if (!command?.data)
-        continue;
-    commands.push(command.data.toJSON());
+    if (command?.data) {
+        commands.push(command.data.toJSON());
+    }
+    if (command?.contextMenu) {
+        commands.push(command.contextMenu.toJSON());
+    }
 }
 const rest = new discord_js_1.REST({ version: "10" }).setToken(token);
 async function register() {

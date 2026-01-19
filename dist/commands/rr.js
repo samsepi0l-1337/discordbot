@@ -13,18 +13,48 @@ const mentions_2 = require("../core/formatters/mentions");
 const emoji_1 = require("../core/parsers/emoji");
 const time_1 = require("../core/parsers/time");
 async function fetchActiveMessage(interaction) {
-    const active = (0, rrRepo_1.getActiveMessage)(interaction.guild.id);
-    if (!active?.message_id)
-        return null;
-    const channel = await interaction.guild.channels.fetch(active.channel_id).catch(() => null);
+    const guild = interaction.guild;
+    let messageId = interaction.options?.getString?.("message_id");
+    // 1. Check if the interaction itself is a reply (Slash Command only)
+    if (!messageId && interaction.message?.id) {
+        messageId = interaction.message.id;
+    }
+    // 2. Check if it's a Context Menu interaction
+    if (!messageId && interaction.targetId) {
+        messageId = interaction.targetId;
+    }
+    // 3. Fallback to DB active message
+    if (!messageId) {
+        const active = (0, rrRepo_1.getActiveMessage)(guild.id);
+        if (!active?.message_id)
+            return null;
+        const channel = await guild.channels.fetch(active.channel_id).catch(() => null);
+        if (!channel?.isTextBased())
+            return null;
+        const message = await channel.messages.fetch(active.message_id).catch(() => null);
+        if (!message)
+            return null;
+        return { channel, message };
+    }
+    // If we have an ID (from arg, reply, or context menu), resolve the channel and message
+    const active = (0, rrRepo_1.getActiveMessage)(guild.id);
+    const channelId = active?.channel_id || interaction.channelId;
+    const channel = await guild.channels.fetch(channelId).catch(() => null);
     if (!channel?.isTextBased())
         return null;
-    const message = await channel.messages.fetch(active.message_id).catch(() => null);
+    const message = await channel.messages.fetch(messageId).catch(() => null);
     if (!message)
         return null;
+    // For convenience, if found via reply or arg, set as active
+    if (message.id !== active?.message_id) {
+        (0, rrRepo_1.setActiveMessage)(guild.id, channel.id, message.id);
+    }
     return { channel, message };
 }
 module.exports = {
+    contextMenu: new discord_js_1.ContextMenuCommandBuilder()
+        .setName("RR: 활성 메시지로 설정")
+        .setType(discord_js_1.ApplicationCommandType.Message),
     data: new discord_js_1.SlashCommandBuilder()
         .setName("rr")
         .setDescription("Reaction Roles 관리")
@@ -38,8 +68,8 @@ module.exports = {
         .addChannelTypes(discord_js_1.ChannelType.GuildText)))
         .addSubcommand((sub) => sub
         .setName("message")
-        .setDescription("활성 메시지 선택")
-        .addStringOption((option) => option.setName("message_id").setDescription("메시지 ID").setRequired(true)))
+        .setDescription("활성 메시지 선택 (ID 미입력 시 답글 대상 사용)")
+        .addStringOption((option) => option.setName("message_id").setDescription("메시지 ID (선택)").setRequired(false)))
         .addSubcommandGroup((group) => group
         .setName("add")
         .setDescription("리액션 역할 추가")
@@ -76,22 +106,22 @@ module.exports = {
         .setDescription("리액션 역할 삭제")
         .addSubcommand((sub) => sub
         .setName("all")
-        .setDescription("메시지의 모든 리액션 역할 삭제")
-        .addStringOption((option) => option.setName("message_id").setDescription("메시지 ID").setRequired(true)))
+        .setDescription("메시지의 모든 리액션 역할 삭제 (ID 미입력 시 답글 대상 사용)")
+        .addStringOption((option) => option.setName("message_id").setDescription("메시지 ID (선택)").setRequired(false)))
         .addSubcommand((sub) => sub
         .setName("reaction-role")
-        .setDescription("메시지에서 특정 역할 삭제")
-        .addStringOption((option) => option.setName("message_id").setDescription("메시지 ID").setRequired(true))
-        .addRoleOption((option) => option.setName("role").setDescription("역할").setRequired(true)))
+        .setDescription("메시지에서 특정 역할 삭제 (ID 미입력 시 답글 대상 사용)")
+        .addRoleOption((option) => option.setName("role").setDescription("역할").setRequired(true))
+        .addStringOption((option) => option.setName("message_id").setDescription("메시지 ID (선택)").setRequired(false)))
         .addSubcommand((sub) => sub
         .setName("reaction-emoji")
-        .setDescription("메시지에서 특정 이모지 삭제")
-        .addStringOption((option) => option.setName("message_id").setDescription("메시지 ID").setRequired(true))
-        .addStringOption((option) => option.setName("emoji").setDescription("이모지").setRequired(true)))
+        .setDescription("메시지에서 특정 이모지 삭제 (ID 미입력 시 답글 대상 사용)")
+        .addStringOption((option) => option.setName("emoji").setDescription("이모지").setRequired(true))
+        .addStringOption((option) => option.setName("message_id").setDescription("메시지 ID (선택)").setRequired(false)))
         .addSubcommand((sub) => sub
         .setName("check")
-        .setDescription("삭제된 역할 참조 정리")
-        .addStringOption((option) => option.setName("message_id").setDescription("메시지 ID").setRequired(true))))
+        .setDescription("삭제된 역할 참조 정리 (ID 미입력 시 답글 대상 사용)")
+        .addStringOption((option) => option.setName("message_id").setDescription("메시지 ID (선택)").setRequired(false))))
         .addSubcommandGroup((group) => group
         .setName("autorole")
         .setDescription("입장 시 역할 부여")
@@ -180,6 +210,18 @@ module.exports = {
             });
             return;
         }
+        // Handle Message Context Menu
+        if (interaction.isMessageContextMenuCommand()) {
+            const message = interaction.targetMessage;
+            (0, rrRepo_1.setActiveMessage)(guildId, message.channel.id, message.id);
+            await interaction.reply({
+                content: `활성 메시지를 설정했어요. 메시지 ID: ${message.id}\n채널: <#${message.channel.id}>`,
+                ephemeral: true,
+            });
+            return;
+        }
+        if (!interaction.isChatInputCommand())
+            return;
         const sub = interaction.options.getSubcommand();
         const group = interaction.options.getSubcommandGroup(false);
         if (sub === "channel") {
@@ -192,34 +234,40 @@ module.exports = {
             return;
         }
         if (sub === "message") {
-            const messageId = interaction.options.getString("message_id", true);
-            const active = (0, rrRepo_1.getActiveMessage)(guildId);
-            if (!active?.channel_id) {
+            const messageId = interaction.options.getString("message_id");
+            let targetMessageId = messageId;
+            // Fallback to reply
+            if (!targetMessageId && interaction.message?.id) {
+                targetMessageId = interaction.message.id;
+            }
+            if (!targetMessageId) {
                 await interaction.reply({
-                    content: "먼저 /rr channel로 채널을 지정해주세요.",
+                    content: "메시지 ID를 입력하거나, 대상 메시지에 답글(Reply)을 달고 명령어를 실행해주세요.",
                     ephemeral: true,
                 });
                 return;
             }
-            const channel = await guild.channels.fetch(active.channel_id).catch(() => null);
+            const active = (0, rrRepo_1.getActiveMessage)(guildId);
+            const channelId = active?.channel_id || interaction.channelId;
+            const channel = await guild.channels.fetch(channelId).catch(() => null);
             if (!channel?.isTextBased()) {
                 await interaction.reply({
-                    content: "활성 채널을 찾을 수 없어요.",
+                    content: "활성 채널을 찾을 수 없어요. /rr channel로 먼저 설정해주세요.",
                     ephemeral: true,
                 });
                 return;
             }
-            const message = await channel.messages.fetch(messageId).catch(() => null);
+            const message = await channel.messages.fetch(targetMessageId).catch(() => null);
             if (!message) {
                 await interaction.reply({
-                    content: "메시지를 찾지 못했어요. ID를 확인해주세요.",
+                    content: "메시지를 찾지 못했어요. ID를 확인하거나 해당 채널이 맞는지 확인해주세요.",
                     ephemeral: true,
                 });
                 return;
             }
-            (0, rrRepo_1.setActiveMessage)(guildId, channel.id, messageId);
+            (0, rrRepo_1.setActiveMessage)(guildId, channel.id, message.id);
             await interaction.reply({
-                content: `활성 메시지를 설정했어요. 메시지 ID: ${messageId}`,
+                content: `활성 메시지를 설정했어요. 메시지 ID: ${message.id}`,
                 ephemeral: true,
             });
             return;
@@ -314,20 +362,37 @@ module.exports = {
             return;
         }
         if (group === "delete") {
-            const messageId = interaction.options.getString("message_id", true);
+            const messageIdInput = interaction.options.getString("message_id");
+            let targetMessageId = messageIdInput;
+            if (!targetMessageId && interaction.message?.id) {
+                targetMessageId = interaction.message.id;
+            }
+            if (!targetMessageId) {
+                const active = (0, rrRepo_1.getActiveMessage)(guildId);
+                if (active?.message_id) {
+                    targetMessageId = active.message_id;
+                }
+                else {
+                    await interaction.reply({
+                        content: "메시지 ID를 입력하거나, 대상 메시지에 답글(Reply)을 달아주세요.",
+                        ephemeral: true,
+                    });
+                    return;
+                }
+            }
             if (sub === "all") {
-                const removed = (0, rrRepo_1.deleteRulesByMessage)(guildId, messageId);
+                const removed = (0, rrRepo_1.deleteRulesByMessage)(guildId, targetMessageId);
                 await interaction.reply({
-                    content: `삭제 완료: ${removed}개`,
+                    content: `삭제 완료: ${removed}개 (메시지 ID: ${targetMessageId})`,
                     ephemeral: true,
                 });
                 return;
             }
             if (sub === "reaction-role") {
                 const role = interaction.options.getRole("role", true);
-                const removed = (0, rrRepo_1.deleteRulesByRole)(guildId, messageId, role.id);
+                const removed = (0, rrRepo_1.deleteRulesByRole)(guildId, targetMessageId, role.id);
                 await interaction.reply({
-                    content: `삭제 완료: ${removed}개`,
+                    content: `삭제 완료: ${removed}개 (메시지 ID: ${targetMessageId})`,
                     ephemeral: true,
                 });
                 return;
@@ -342,28 +407,21 @@ module.exports = {
                     });
                     return;
                 }
-                const removed = (0, rrRepo_1.deleteRulesByEmoji)(guildId, messageId, parsed.key);
+                const removed = (0, rrRepo_1.deleteRulesByEmoji)(guildId, targetMessageId, parsed.key);
                 await interaction.reply({
-                    content: `삭제 완료: ${removed}개`,
+                    content: `삭제 완료: ${removed}개 (메시지 ID: ${targetMessageId})`,
                     ephemeral: true,
                 });
                 return;
             }
             if (sub === "check") {
-                const channelId = (0, rrRepo_1.getActiveMessage)(guildId)?.channel_id;
-                if (!channelId) {
-                    await interaction.reply({
-                        content: "먼저 /rr channel로 채널을 지정해주세요.",
-                        ephemeral: true,
-                    });
-                    return;
-                }
+                const channelId = (0, rrRepo_1.getActiveMessage)(guildId)?.channel_id || interaction.channelId;
                 const channel = await guild.channels.fetch(channelId).catch(() => null);
-                const message = channel?.isTextBased()
-                    ? await channel.messages.fetch(messageId).catch(() => null)
+                const message = (channel?.isTextBased() && targetMessageId)
+                    ? await channel.messages.fetch(targetMessageId).catch(() => null)
                     : null;
                 if (!message) {
-                    const removed = (0, rrRepo_1.deleteRulesByMessage)(guildId, messageId);
+                    const removed = (0, rrRepo_1.deleteRulesByMessage)(guildId, targetMessageId);
                     await interaction.reply({
                         content: `메시지를 찾지 못해 규칙을 삭제했어요. 삭제 수: ${removed}`,
                         ephemeral: true,
@@ -371,7 +429,7 @@ module.exports = {
                     return;
                 }
                 const roleIds = [...message.guild.roles.cache.keys()];
-                const removed = (0, rrRepo_1.deleteRulesMissingRoles)(guildId, messageId, roleIds);
+                const removed = (0, rrRepo_1.deleteRulesMissingRoles)(guildId, targetMessageId, roleIds);
                 await interaction.reply({
                     content: `삭제된 역할 참조 정리: ${removed}개`,
                     ephemeral: true,

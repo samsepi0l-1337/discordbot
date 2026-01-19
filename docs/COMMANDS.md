@@ -19,24 +19,6 @@
 
 길드(서버)별 기본 설정을 저장합니다.
 
-### `/config set-base-role`
-
-- **인수**
-  - `role` (Role, required)
-- **사용 예**
-  - `/config set-base-role role:@Member`
-- **결과**
-  - 신규 입장자에게 기본 역할을 부여합니다(지연 설정이 있으면 지연 후 부여).
-
-### `/config set-join-delay`
-
-- **인수**
-  - `seconds` (Integer, required, min 0)
-- **사용 예**
-  - `/config set-join-delay seconds:10`
-- **결과**
-  - 입장 후 기본 역할 부여를 지정된 초만큼 지연합니다.
-
 ### `/config set-intro`
 
 - **인수**
@@ -76,6 +58,7 @@
 ### `/config clear`
 
 - **인수**: `field` (Choice, required)
+  - `intro_channel`, `intro_role`, `command_roles`, `command_users`
 - **결과**: 특정 설정만 초기화합니다.
 
 ### `/config reset`
@@ -101,10 +84,20 @@ Zira 스타일로 “활성 메시지(active message)”를 선택한 뒤 규칙
 
 ### `/rr message`
 
-- **인수**: `message_id` (String, required)
+- **인수**: `message_id` (String, optional)
 - **결과**: 활성 메시지를 설정합니다.
+- **내부 로직**:
+    1. `message_id` 인수가 있으면 해당 ID를 사용합니다.
+    2. 인수가 없고 명령어 실행 시 특정 메시지에 **답글(Reply)** 중이라면, 그 답글 대상 메시지를 사용합니다.
+    3. 둘 다 없으면 오류 메시지를 출력합니다.
 
-### `/rr add normal`
+### `/rr add ...` (모든 타입)
+
+- **인수**: `emoji`, `role`, `group` (toggle 전용)
+- **내부 로직**:
+    1. 명령어 실행 시 특정 메시지에 **답글(Reply)** 중이라면, 그 메시지를 대상으로 즉시 규칙을 추가합니다.
+    2. 답글 중이 아니라면, 이전에 `/rr message`로 설정한 **활성 메시지**를 대상으로 사용합니다.
+- **결과**: 대상 메시지에 이모지 반응이 달리고 규칙이 DB에 저장됩니다.
 
 - **인수**
   - `emoji` (String, required) — 유니코드(예: `✅`) 또는 커스텀(예: `<:name:123...>`)
@@ -161,21 +154,24 @@ Zira 스타일로 “활성 메시지(active message)”를 선택한 뒤 규칙
 #### `/rr delete check`
 
 - **인수**: `message_id` (String, required)
-- **결과**
-  - 삭제된 역할을 참조하는 규칙을 정리합니다.
-  - 현재 구현은 “활성 채널(/rr channel)”을 기준으로 메시지를 찾습니다.
+- **내부 로직**:
+    1. 현재 서버의 모든 역할 목록을 조회합니다.
+    2. 데이터베이스의 해당 메시지에 등록된 규칙 중, 더 이상 존재하지 않는 역할 ID를 참조하는 행을 삭제합니다.
+- **결과**: 삭제된 역할로 인해 발생하는 "찌꺼기 규칙"들을 정리합니다.
 
 ### `/rr autorole ...`
 
 - `/rr autorole add target:user|bot role:<Role>`
-- `/rr autorole delete target:user|bot role:<Role>`
-- `/rr autorole show`
-- **결과**
-  - 입장 시 자동 부여 역할을 관리합니다.
+- **내부 로직**: 유저가 입장할 때 `user` 타입인지 `bot` 타입인지 판별하여 지정된 역할을 즉시 부여합니다.
+- **결과**: 유저와 봇을 구분하여 자동으로 초기 권한을 관리합니다.
 
 ### `/rr timed ...`
 
 - `/rr timed add role:<Role> time:<10m|2h|1d>`
+- **내부 로직**:
+    1. `10m`(10분), `2h`(2시간) 등의 문자열을 밀리초(ms) 단위로 파싱합니다.
+    2. 유저가 입장할 때 `setTimeout`을 통해 지정된 시간 뒤 역할 부여 작업을 예약합니다.
+- **결과**: 입장 후 일정 시간이 지난 뒤 자동으로 역할을 부여합니다. (주의: 봇 재시작 시 대기 중인 예약은 취소됩니다.)
 - `/rr timed delete role:<Role>`
 - `/rr timed show`
 - **결과**
@@ -249,24 +245,18 @@ Tickets Bot 스타일로 **서버 내 티켓 채널 생성/닫기/클레임/트�
 #### `/ticket close`
 
 - **인수**: `reason` (String, optional)
-- **결과**
-  - 티켓을 **종료(닫기)** 처리합니다.
-  - 스레드를 **잠금/아카이브**해서 더 이상 대화가 진행되지 않게 합니다.
-  - 스레드가 자동으로 아카이브된 상태여도, 처리 시 잠깐 해제한 뒤 다시 잠금/아카이브합니다.
-  - 트랜스크립트 채널이 설정돼 있으면 transcript 파일을 전송합니다.
+- **내부 로직**:
+    1. 스레드 채널의 최근 메시지 100개를 가져와 트랜스크립트(`.txt`) 데이터를 생성합니다.
+    2. `ticket_sessions` DB의 상태를 `closed`로 변경하고 종료 시간/사유를 기록합니다.
+    3. 설정된 트랜스크립트 채널로 텍스트 파일을 업로드합니다.
+    4. 스레드를 잠금 및 보관 처리합니다.
+- **결과**: 대화가 종료되고 상담 내역이 영구적으로 보존됩니다.
 
 #### `/ticket claim` / `/ticket unclaim` / `/ticket transfer`
 
-- **개념**
-  - **claim(클레임)**: “이 티켓은 내가 담당할게요”라고 표시
-  - **unclaim(언클레임)**: 담당 표시를 해제
-  - **transfer(전달)**: 담당자를 다른 스태프로 변경
-- **인수**
-  - `transfer`는 `user` (User, required)
-- **결과**
-  - 티켓의 **담당자(claimer)** 정보를 저장합니다.
-  - 티켓 채널(스레드)에서 누가 담당 중인지 알 수 있게 됩니다.
-  - 스레드가 자동으로 아카이브된 상태여도, 처리 시 잠깐 해제한 뒤 진행합니다.
+- **인수**: `transfer`의 경우 `user` (User, required)
+- **내부 로직**: 데이터베이스의 `claimed_by_id` 필드를 업데이트하고, 티켓 채널의 상단 안내 메시지를 현재 담당자 정보로 갱신합니다.
+- **결과**: 다른 스태프들이 해당 티켓의 처리 여부를 즉시 알 수 있게 됩니다.
 
 #### `/ticket add` / `/ticket remove`
 

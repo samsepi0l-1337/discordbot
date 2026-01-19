@@ -10,20 +10,6 @@ describe("guildConfigRepo", () => {
     cleanupTestDbPath();
   });
 
-  test("setBaseRole + getConfig", () => {
-    const repo = require("../src/config/guildConfigRepo");
-    repo.setBaseRole("g1", "r1");
-    const cfg = repo.getConfig("g1");
-    expect(cfg.base_role_id).toBe("r1");
-  });
-
-  test("join delay stored in ms", () => {
-    const repo = require("../src/config/guildConfigRepo");
-    repo.setJoinDelayMs("g1", 1234);
-    const cfg = repo.getConfig("g1");
-    expect(cfg.join_delay_ms).toBe(1234);
-  });
-
   test("command allow lists are parsed into arrays", () => {
     const repo = require("../src/config/guildConfigRepo");
     repo.addCommandRole("g1", "roleA");

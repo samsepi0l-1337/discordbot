@@ -55,9 +55,12 @@ for (const file of node_fs_1.default.readdirSync(commandsPath)) {
     if (!file.endsWith(".js"))
         continue;
     const command = require(node_path_1.default.join(commandsPath, file));
-    if (!command?.data || !command?.execute)
-        continue;
-    commands.set(command.data.name, command);
+    if (command?.data?.name) {
+        commands.set(command.data.name, command);
+    }
+    if (command?.contextMenu?.name) {
+        commands.set(command.contextMenu.name, command);
+    }
 }
 const eventsPath = node_path_1.default.join(__dirname, "events");
 for (const file of node_fs_1.default.readdirSync(eventsPath)) {
@@ -69,8 +72,11 @@ for (const file of node_fs_1.default.readdirSync(eventsPath)) {
     client.on(event.name, (...args) => event.execute(...args));
 }
 client.on("interactionCreate", async (interaction) => {
-    if (interaction.isChatInputCommand()) {
-        const command = commands.get(interaction.commandName);
+    if (interaction.isChatInputCommand() || interaction.isContextMenuCommand()) {
+        const commandName = interaction.isChatInputCommand()
+            ? interaction.commandName
+            : interaction.commandName;
+        const command = commands.get(commandName);
         if (!command)
             return;
         try {

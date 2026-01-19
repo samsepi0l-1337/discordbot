@@ -6,14 +6,6 @@ export class SqliteGuildConfigRepo implements GuildConfigRepoPort {
     return configRepo.getConfig(guildId);
   }
 
-  setJoinDelayMs(guildId: string, joinDelayMs: number) {
-    configRepo.setJoinDelayMs(guildId, joinDelayMs);
-  }
-
-  setBaseRole(guildId: string, roleId: string) {
-    configRepo.setBaseRole(guildId, roleId);
-  }
-
   setIntro(guildId: string, channelId: string, roleId: string) {
     configRepo.setIntro(guildId, channelId, roleId);
   }

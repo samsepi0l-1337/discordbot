@@ -13,25 +13,13 @@ export type MemberInput<Member> = {
 
 export class OnboardingService<Member> {
   constructor(
-    private readonly configRepo: GuildConfigRepoPort,
     private readonly autoroleRepo: AutoroleRepoPort,
     private readonly timedRoleRepo: TimedRoleRepoPort,
     private readonly roleManager: RoleManagerPort<Member>,
     private readonly schedule: Scheduler
-  ) {}
+  ) { }
 
   async handleMemberAdd(input: MemberInput<Member>) {
-    const config = this.configRepo.getConfig(input.guildId);
-    if (!config) return;
-
-    const baseRoleId = config.base_role_id;
-    const joinDelayMs = config.join_delay_ms || 0;
-    if (baseRoleId) {
-      this.schedule(() => {
-        void this.roleManager.assignRole(input.member, baseRoleId, "base-role");
-      }, joinDelayMs);
-    }
-
     const autoroles = this.autoroleRepo.list(input.guildId);
     for (const rule of autoroles) {
       const shouldAssign =
