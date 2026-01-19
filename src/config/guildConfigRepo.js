@@ -21,7 +21,9 @@ function getConfig(guildId) {
              intro_role_id,
              grant_on_post_channel_id,
              grant_on_post_role_id,
-             check_emoji
+             check_emoji,
+             ticket_channel_id,
+             ticket_recipient_id
       FROM guild_config
       WHERE guild_id = ?
     `
@@ -80,6 +82,22 @@ function setGrantOnPost(guildId, channelId, roleId) {
   ).run(channelId, roleId, guildId);
 }
 
+function setTicketChannel(guildId, channelId) {
+  ensureGuildRow(guildId);
+  const db = getDb();
+  db.prepare(
+    "UPDATE guild_config SET ticket_channel_id = ? WHERE guild_id = ?"
+  ).run(channelId, guildId);
+}
+
+function setTicketRecipient(guildId, userId) {
+  ensureGuildRow(guildId);
+  const db = getDb();
+  db.prepare(
+    "UPDATE guild_config SET ticket_recipient_id = ? WHERE guild_id = ?"
+  ).run(userId, guildId);
+}
+
 function clearField(guildId, fieldKey) {
   const fieldMap = {
     base_role: "base_role_id",
@@ -89,6 +107,8 @@ function clearField(guildId, fieldKey) {
     grant_on_post_channel: "grant_on_post_channel_id",
     grant_on_post_role: "grant_on_post_role_id",
     check_emoji: "check_emoji",
+    ticket_channel: "ticket_channel_id",
+    ticket_recipient: "ticket_recipient_id",
   };
   const column = fieldMap[fieldKey];
   if (!column) return false;
@@ -112,6 +132,8 @@ module.exports = {
   setBaseRole,
   setIntro,
   setGrantOnPost,
+  setTicketChannel,
+  setTicketRecipient,
   clearField,
   resetConfig,
 };
