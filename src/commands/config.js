@@ -8,10 +8,6 @@ const {
   setJoinDelayMs,
   setBaseRole,
   setIntro,
-  setTicketChannel,
-  setTicketRecipient,
-  addTicketRecipient,
-  removeTicketRecipient,
   addCommandRole,
   removeCommandRole,
   addCommandUser,
@@ -19,7 +15,6 @@ const {
   clearField,
   resetConfig,
 } = require("../config/guildConfigRepo");
-const { postTicketPanel } = require("../tickets/ticketService");
 
 function formatRole(id) {
   return id ? `<@&${id}>` : "미설정";
@@ -124,34 +119,6 @@ module.exports = {
         )
     )
     .addSubcommand((sub) =>
-      sub
-        .setName("set-ticket-channel")
-        .setDescription("티켓 패널을 게시할 채널 설정")
-        .addChannelOption((option) =>
-          option
-            .setName("channel")
-            .setDescription("티켓 채널")
-            .setRequired(true)
-            .addChannelTypes(ChannelType.GuildText)
-        )
-    )
-    .addSubcommand((sub) =>
-      sub
-        .setName("set-ticket-recipient")
-        .setDescription("티켓 메시지를 받을 담당자 설정")
-        .addUserOption((option) =>
-          option.setName("user").setDescription("담당자").setRequired(true)
-        )
-    )
-    .addSubcommand((sub) =>
-      sub
-        .setName("remove-ticket-recipient")
-        .setDescription("티켓 담당자 제거")
-        .addUserOption((option) =>
-          option.setName("user").setDescription("담당자").setRequired(true)
-        )
-    )
-    .addSubcommand((sub) =>
       sub.setName("show").setDescription("현재 설정 보기")
     )
     .addSubcommand((sub) =>
@@ -168,8 +135,6 @@ module.exports = {
               { name: "join_delay", value: "join_delay" },
               { name: "intro_channel", value: "intro_channel" },
               { name: "intro_role", value: "intro_role" },
-              { name: "ticket_channel", value: "ticket_channel" },
-              { name: "ticket_recipient", value: "ticket_recipient" },
               { name: "command_roles", value: "command_roles" },
               { name: "command_users", value: "command_users" }
             )
@@ -315,47 +280,6 @@ module.exports = {
       return;
     }
 
-    if (sub === "set-ticket-channel") {
-      const channel = interaction.options.getChannel("channel", true);
-      setTicketChannel(guildId, channel.id);
-      let panelPosted = false;
-      try {
-        await postTicketPanel(channel);
-        panelPosted = true;
-      } catch (error) {
-        console.warn("[ticket-panel] Failed to post panel:", error);
-      }
-      await interaction.reply({
-        content: panelPosted
-          ? `티켓 채널을 ${formatChannel(channel.id)}로 설정하고 패널을 게시했어요.`
-          : `티켓 채널을 ${formatChannel(
-            channel.id
-          )}로 설정했어요. 패널 게시에 실패했으니 채널 권한을 확인해주세요.`,
-        ephemeral: true,
-      });
-      return;
-    }
-
-    if (sub === "set-ticket-recipient") {
-      const user = interaction.options.getUser("user", true);
-      addTicketRecipient(guildId, user.id);
-      await interaction.reply({
-        content: `티켓 지원 유저에 ${formatUser(user.id)}를 추가했어요.`,
-        ephemeral: true,
-      });
-      return;
-    }
-
-    if (sub === "remove-ticket-recipient") {
-      const user = interaction.options.getUser("user", true);
-      removeTicketRecipient(guildId, user.id);
-      await interaction.reply({
-        content: `티켓 지원 유저에서 ${formatUser(user.id)}를 제거했어요.`,
-        ephemeral: true,
-      });
-      return;
-    }
-
     if (sub === "show") {
       const config = getConfig(guildId);
       if (!config) {
@@ -372,8 +296,6 @@ module.exports = {
         `- intro_role: ${formatRole(config.intro_role_id)}`,
         `- command_roles: ${formatRoles(config.command_role_ids)}`,
         `- command_users: ${formatUsersList(config.command_user_ids)}`,
-        `- ticket_channel: ${formatChannel(config.ticket_channel_id)}`,
-        `- ticket_support_users: ${formatUsers(config.ticket_support_user_ids)}`,
       ];
       await interaction.reply({
         content: `현재 설정\n${lines.join("\n")}`,
