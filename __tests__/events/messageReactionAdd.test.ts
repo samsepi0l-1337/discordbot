@@ -158,4 +158,3 @@ describe("event: messageReactionAdd", () => {
     expect(assignRole).not.toHaveBeenCalled();
   });
 });
-
