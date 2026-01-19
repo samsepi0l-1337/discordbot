@@ -4,7 +4,7 @@
 
 ## 공통
 
-- **커맨드 등록**: `npm run register`
+- **커맨드 등록**: 봇 실행 시 자동으로 등록됩니다. (`CLIENT_ID`, `GUILD_ID` 설정 필요)
 - **실행**: `npm start`
 - **권한(커맨드 설정/관리용)**:
   - 기본적으로 **서버 관리(Manage Server)** 또는 `/config allow-command-role|allow-command-user`로 허용된 권한이 필요합니다.

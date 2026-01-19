@@ -6,6 +6,8 @@ import {
   Collection,
   GatewayIntentBits,
   Partials,
+  REST,
+  Routes,
   type Interaction,
 } from "discord.js";
 import { getConfig } from "./config/guildConfigRepo";
@@ -64,6 +66,7 @@ type CommandHandler = {
 };
 
 const commands = new Collection<string, CommandHandler>();
+const commandData: unknown[] = [];
 
 const commandsPath = path.join(__dirname, "commands");
 for (const file of fs.readdirSync(commandsPath)) {
@@ -71,9 +74,38 @@ for (const file of fs.readdirSync(commandsPath)) {
   const command = require(path.join(commandsPath, file)) as CommandHandler;
   if (command?.data?.name) {
     commands.set(command.data.name, command);
+    commandData.push((command.data as any).toJSON());
   }
   if (command?.contextMenu?.name) {
     commands.set(command.contextMenu.name, command);
+    commandData.push((command.contextMenu as any).toJSON());
+  }
+}
+
+async function registerCommandsOnStartup() {
+  const clientId = process.env.CLIENT_ID;
+  const guildId = process.env.GUILD_ID;
+  const token = process.env.DISCORD_TOKEN;
+
+  if (!clientId || !token) {
+    console.error("[register] Missing CLIENT_ID or DISCORD_TOKEN. Skipping registration.");
+    return;
+  }
+
+  const rest = new REST({ version: "10" }).setToken(token);
+
+  try {
+    if (guildId) {
+      await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
+        body: commandData,
+      });
+      console.log(`[register] Registered guild commands for ${guildId}.`);
+    } else {
+      await rest.put(Routes.applicationCommands(clientId), { body: commandData });
+      console.log("[register] Registered global commands.");
+    }
+  } catch (error) {
+    console.error("[register] Failed to register commands:", error);
   }
 }
 
@@ -143,8 +175,9 @@ client.on("interactionCreate", async (interaction: Interaction) => {
   }
 });
 
-client.once("ready", () => {
+client.once("ready", async () => {
   console.log(`Logged in as ${client.user?.tag}`);
+  await registerCommandsOnStartup();
   startTicketCleanup();
 });
 

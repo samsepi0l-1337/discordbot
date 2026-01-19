@@ -6,7 +6,6 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
-    "register": "npm run build --silent && node dist/registerCommands.js",
     "test": "jest"
   },
   "keywords": [],
