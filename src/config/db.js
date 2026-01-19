@@ -26,6 +26,9 @@ function ensureGuildConfigColumns(dbInstance) {
       "ALTER TABLE guild_config ADD COLUMN grant_on_post_emoji_map TEXT"
     );
   }
+  if (!columns.includes("command_role_ids")) {
+    missing.push("ALTER TABLE guild_config ADD COLUMN command_role_ids TEXT");
+  }
   for (const statement of missing) {
     dbInstance.exec(statement);
   }
@@ -51,6 +54,7 @@ function getDb() {
       grant_on_post_role_id TEXT,
       grant_on_post_message_id TEXT,
       grant_on_post_emoji_map TEXT,
+      command_role_ids TEXT,
       check_emoji TEXT DEFAULT '✅',
       ticket_channel_id TEXT,
       ticket_recipient_id TEXT

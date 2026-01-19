@@ -13,6 +13,8 @@ const {
   setTicketRecipient,
   addTicketRecipient,
   removeTicketRecipient,
+  addCommandRole,
+  removeCommandRole,
   clearField,
   resetConfig,
 } = require("../config/guildConfigRepo");
@@ -35,6 +37,11 @@ function formatUser(id) {
 function formatUsers(ids) {
   if (!ids?.length) return "미설정";
   return ids.map((id) => `<@${id}>`).join(", ");
+}
+
+function formatRoles(ids) {
+  if (!ids?.length) return "미설정";
+  return ids.map((id) => formatRole(id)).join(", ");
 }
 
 function formatGrantOnPostMap(map) {
@@ -164,6 +171,22 @@ module.exports = {
     )
     .addSubcommand((sub) =>
       sub
+        .setName("allow-command-role")
+        .setDescription("봇 커맨드 사용 허용 역할 추가")
+        .addRoleOption((option) =>
+          option.setName("role").setDescription("허용 역할").setRequired(true)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("remove-command-role")
+        .setDescription("봇 커맨드 사용 허용 역할 제거")
+        .addRoleOption((option) =>
+          option.setName("role").setDescription("허용 역할").setRequired(true)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
         .setName("set-ticket-channel")
         .setDescription("티켓 패널을 게시할 채널 설정")
         .addChannelOption((option) =>
@@ -211,7 +234,8 @@ module.exports = {
               { name: "grant_on_post_message", value: "grant_on_post_message" },
               { name: "grant_on_post_emojis", value: "grant_on_post_emojis" },
               { name: "ticket_channel", value: "ticket_channel" },
-              { name: "ticket_recipient", value: "ticket_recipient" }
+              { name: "ticket_recipient", value: "ticket_recipient" },
+              { name: "command_roles", value: "command_roles" }
             )
         )
     )
@@ -228,19 +252,24 @@ module.exports = {
       return;
     }
 
-    if (
-      !interaction.memberPermissions?.has(
-        PermissionsBitField.Flags.ManageGuild
-      )
-    ) {
+    const config = getConfig(guildId);
+    const hasAdmin = interaction.memberPermissions?.has(
+      PermissionsBitField.Flags.ManageGuild
+    );
+    const hasAllowedRole =
+      !!config?.command_role_ids?.length &&
+      interaction.member?.roles?.cache?.some((role) =>
+        config.command_role_ids.includes(role.id)
+      );
+    if (!hasAdmin && !hasAllowedRole) {
       await interaction.reply({
-        content: "이 명령을 사용하려면 서버 관리 권한이 필요해요.",
+        content:
+          "이 명령을 사용하려면 서버 관리 권한 또는 허용된 역할이 필요해요.",
         ephemeral: true,
       });
       return;
     }
 
-    const guildId = interaction.guild.id;
     const sub = interaction.options.getSubcommand();
 
     if (sub === "set-base-role") {
@@ -310,6 +339,40 @@ module.exports = {
       return;
     }
 
+    if (sub === "allow-command-role") {
+      if (!hasAdmin) {
+        await interaction.reply({
+          content: "허용 역할 설정은 서버 관리 권한이 필요해요.",
+          ephemeral: true,
+        });
+        return;
+      }
+      const role = interaction.options.getRole("role", true);
+      addCommandRole(guildId, role.id);
+      await interaction.reply({
+        content: `커맨드 허용 역할에 ${formatRole(role.id)}를 추가했어요.`,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    if (sub === "remove-command-role") {
+      if (!hasAdmin) {
+        await interaction.reply({
+          content: "허용 역할 설정은 서버 관리 권한이 필요해요.",
+          ephemeral: true,
+        });
+        return;
+      }
+      const role = interaction.options.getRole("role", true);
+      removeCommandRole(guildId, role.id);
+      await interaction.reply({
+        content: `커맨드 허용 역할에서 ${formatRole(role.id)}를 제거했어요.`,
+        ephemeral: true,
+      });
+      return;
+    }
+
     if (sub === "set-ticket-channel") {
       const channel = interaction.options.getChannel("channel", true);
       setTicketChannel(guildId, channel.id);
@@ -373,6 +436,7 @@ module.exports = {
         `- grant_on_post_emojis: ${formatGrantOnPostMap(
           config.grant_on_post_emoji_map
         )}`,
+        `- command_roles: ${formatRoles(config.command_role_ids)}`,
         `- ticket_channel: ${formatChannel(config.ticket_channel_id)}`,
         `- ticket_recipient: ${formatUsers(config.ticket_recipient_ids)}`,
       ];
