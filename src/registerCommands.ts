@@ -12,7 +12,9 @@ if (!token || !clientId) {
   process.exit(1);
 }
 
-const commands = [];
+const resolvedClientId = clientId;
+
+const commands: unknown[] = [];
 const commandsPath = path.join(__dirname, "commands");
 for (const file of fs.readdirSync(commandsPath)) {
   if (!file.endsWith(".js")) continue;
@@ -25,12 +27,12 @@ const rest = new REST({ version: "10" }).setToken(token);
 
 async function register() {
   if (guildId) {
-    await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
+    await rest.put(Routes.applicationGuildCommands(resolvedClientId, guildId), {
       body: commands,
     });
     console.log(`Registered guild commands for ${guildId}.`);
   } else {
-    await rest.put(Routes.applicationCommands(clientId), { body: commands });
+    await rest.put(Routes.applicationCommands(resolvedClientId), { body: commands });
     console.log("Registered global commands.");
   }
 }
