@@ -60,8 +60,8 @@ const client = new Client({
 });
 
 type CommandHandler = {
-  data?: { name: string };
-  contextMenu?: { name: string };
+  data?: { name: string; };
+  contextMenu?: { name: string; };
   execute: (interaction: any) => Promise<void>;
 };
 
@@ -119,8 +119,8 @@ for (const file of fs.readdirSync(eventsPath)) {
 
 client.on("interactionCreate", async (interaction: Interaction) => {
   if (interaction.isChatInputCommand() || interaction.isContextMenuCommand()) {
-    const commandName = interaction.isChatInputCommand() 
-      ? interaction.commandName 
+    const commandName = interaction.isChatInputCommand()
+      ? interaction.commandName
       : (interaction as any).commandName;
     const command = commands.get(commandName);
     if (!command) return;
