@@ -97,20 +97,6 @@ function setIntro(guildId, channelId, roleId) {
   ).run(channelId, roleId, guildId);
 }
 
-function setGrantOnPost(guildId, channelId, messageId, emojiRoleMap) {
-  ensureGuildRow(guildId);
-  const db = getDb();
-  db.prepare(
-    `
-    UPDATE guild_config
-    SET grant_on_post_channel_id = ?,
-        grant_on_post_message_id = ?,
-        grant_on_post_emoji_map = ?
-    WHERE guild_id = ?
-  `
-  ).run(channelId, messageId, JSON.stringify(emojiRoleMap || {}), guildId);
-}
-
 function setTicketChannel(guildId, channelId) {
   ensureGuildRow(guildId);
   const db = getDb();
@@ -199,9 +185,6 @@ function clearField(guildId, fieldKey) {
     join_delay: "join_delay_ms",
     intro_channel: "intro_channel_id",
     intro_role: "intro_role_id",
-    grant_on_post_channel: "grant_on_post_channel_id",
-    grant_on_post_message: "grant_on_post_message_id",
-    grant_on_post_emojis: "grant_on_post_emoji_map",
     check_emoji: "check_emoji",
     ticket_channel: "ticket_channel_id",
     ticket_recipient: "ticket_recipient_id",
@@ -228,7 +211,6 @@ module.exports = {
   setJoinDelayMs,
   setBaseRole,
   setIntro,
-  setGrantOnPost,
   setTicketChannel,
   setTicketRecipient,
   addTicketRecipient,

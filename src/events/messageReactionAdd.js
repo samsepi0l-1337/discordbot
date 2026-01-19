@@ -1,4 +1,3 @@
-const { getConfig } = require("../config/guildConfigRepo");
 const { assignRole, removeRole } = require("../utils/discord");
 const {
   listRulesByMessage,
@@ -51,26 +50,7 @@ module.exports = {
     const member = await resolveMember(message, user);
     if (!member) return;
 
-    let rules = listRulesByMessageEmoji(message.guild.id, message.id, emojiKey);
-    if (!rules.length) {
-      const config = getConfig(message.guild.id);
-      if (
-        config?.grant_on_post_message_id &&
-        message.id === config.grant_on_post_message_id
-      ) {
-        const roleId = config.grant_on_post_emoji_map?.[emojiKey];
-        if (roleId) {
-          rules = [
-            {
-              type: "normal",
-              role_id: roleId,
-              emoji_key: emojiKey,
-              toggle_group: null,
-            },
-          ];
-        }
-      }
-    }
+    const rules = listRulesByMessageEmoji(message.guild.id, message.id, emojiKey);
     if (!rules.length) return;
 
     const allMessageRules = listRulesByMessage(message.guild.id, message.id);
