@@ -100,7 +100,7 @@ async function handleStaffReply(message, mapping) {
     await opener.send({
       content: [
         `담당자 답장 (티켓 #${mapping.ticket_id})`,
-        message.content || "(내용 없음)",
+        `메시지: ${message.content || "(내용 없음)"}`,
         formatAttachments(message),
       ]
         .filter(Boolean)
@@ -146,10 +146,10 @@ async function handleTicketUserMessage(message) {
       content: [
         `새 티켓 메시지 (티켓 #${ticket.id})`,
         `서버: ${guildName}`,
-        `보낸 사람: ${message.author.tag} (${message.author.id})`,
-        message.content || "(내용 없음)",
+        `보낸 사람: ${message.author.tag}`,
+        `메시지: ${message.content || "(내용 없음)"}`,
         formatAttachments(message),
-        "이 메시지에 reply로 답장하면 유저에게 전달돼요.",
+        "이 메시지에 reply로 답장하면 유저에게 전달됩니다.",
       ]
         .filter(Boolean)
         .join("\n"),
@@ -161,7 +161,10 @@ async function handleTicketUserMessage(message) {
       staffMessage.id
     );
     touchTicket(ticket.id);
-    await safeDmReply(message, "담당자에게 전달했어요. 답장을 기다려주세요.");
+    await safeDmReply(
+      message,
+      "담당자에게 전달되었습니다. 답장을 기다려주세요."
+    );
   } catch (error) {
     console.warn("[ticket-forward] Failed to DM staff:", error);
     await safeDmReply(

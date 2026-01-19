@@ -10,7 +10,9 @@ function buildTicketPanelPayload() {
     .setStyle(ButtonStyle.Primary);
   const row = new ActionRowBuilder().addComponents(button);
   return {
-    content: "티켓을 생성하려면 아래 버튼을 눌러주세요.",
+    content:
+      "문의가 필요하시면 아래 버튼을 눌러 티켓을 생성해주세요.\n" +
+      "버튼을 누르면 DM으로 안내가 전송됩니다.",
     components: [row],
   };
 }

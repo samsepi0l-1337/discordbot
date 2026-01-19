@@ -93,8 +93,11 @@ client.on("interactionCreate", async (interaction) => {
   try {
     ticketId = createTicketSession(interaction.guild.id, interaction.user.id);
     await interaction.user.send({
-      content:
-        "티켓이 생성되었어요. 이 DM에 문의 내용을 보내주시면 담당자에게 전달할게요.",
+      content: [
+        "티켓이 생성되었습니다.",
+        "이 DM에 메시지를 작성하면 담당자에게 전달됩니다.",
+        "형식: 메시지: (작성 내용)",
+      ].join("\n"),
     });
     await interaction.reply({
       content: "DM을 확인해주세요. 안내 메시지를 보냈어요.",
@@ -106,7 +109,7 @@ client.on("interactionCreate", async (interaction) => {
       closeTicketSession(ticketId);
     }
     const message =
-      "DM 전송에 실패했어요. DM을 허용했는지 확인하고 다시 시도해주세요.";
+      "DM 전송에 실패했어요. DM을 허용했는지 확인한 뒤 다시 시도해주세요.";
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp({ content: message, ephemeral: true });
     } else {
