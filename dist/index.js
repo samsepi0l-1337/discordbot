@@ -50,6 +50,7 @@ const client = new discord_js_1.Client({
     partials: [discord_js_1.Partials.Channel, discord_js_1.Partials.Message, discord_js_1.Partials.Reaction, discord_js_1.Partials.User],
 });
 const commands = new discord_js_1.Collection();
+const commandData = [];
 const commandsPath = node_path_1.default.join(__dirname, "commands");
 for (const file of node_fs_1.default.readdirSync(commandsPath)) {
     if (!file.endsWith(".js"))
@@ -57,9 +58,36 @@ for (const file of node_fs_1.default.readdirSync(commandsPath)) {
     const command = require(node_path_1.default.join(commandsPath, file));
     if (command?.data?.name) {
         commands.set(command.data.name, command);
+        commandData.push(command.data.toJSON());
     }
     if (command?.contextMenu?.name) {
         commands.set(command.contextMenu.name, command);
+        commandData.push(command.contextMenu.toJSON());
+    }
+}
+async function registerCommandsOnStartup() {
+    const clientId = process.env.CLIENT_ID;
+    const guildId = process.env.GUILD_ID;
+    const token = process.env.DISCORD_TOKEN;
+    if (!clientId || !token) {
+        console.error("[register] Missing CLIENT_ID or DISCORD_TOKEN. Skipping registration.");
+        return;
+    }
+    const rest = new discord_js_1.REST({ version: "10" }).setToken(token);
+    try {
+        if (guildId) {
+            await rest.put(discord_js_1.Routes.applicationGuildCommands(clientId, guildId), {
+                body: commandData,
+            });
+            console.log(`[register] Registered guild commands for ${guildId}.`);
+        }
+        else {
+            await rest.put(discord_js_1.Routes.applicationCommands(clientId), { body: commandData });
+            console.log("[register] Registered global commands.");
+        }
+    }
+    catch (error) {
+        console.error("[register] Failed to register commands:", error);
     }
 }
 const eventsPath = node_path_1.default.join(__dirname, "events");
@@ -129,8 +157,9 @@ client.on("interactionCreate", async (interaction) => {
         return;
     }
 });
-client.once("ready", () => {
+client.once("ready", async () => {
     console.log(`Logged in as ${client.user?.tag}`);
+    await registerCommandsOnStartup();
     startTicketCleanup();
 });
 client.login(token);
