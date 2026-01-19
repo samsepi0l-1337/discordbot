@@ -56,4 +56,3 @@ describe("event: messageReactionRemove", () => {
     expect(user.send).not.toHaveBeenCalled();
   });
 });
-
