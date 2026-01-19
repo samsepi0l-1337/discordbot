@@ -5,6 +5,7 @@ import {
   ChannelType,
   type GuildMember,
   type Interaction,
+  type GuildTextBasedChannel,
   type TextBasedChannel,
 } from "discord.js";
 import type { TicketRepo } from "../ports/ticketRepo";
@@ -35,7 +36,7 @@ export class TicketService {
     };
   }
 
-  async postTicketPanel(channel: TextBasedChannel) {
+  async postTicketPanel(channel: GuildTextBasedChannel) {
     return channel.send(this.buildTicketPanelPayload());
   }
 
@@ -89,7 +90,7 @@ export class TicketService {
     }
 
     const panelChannel = await interaction.guild!.channels.fetch(panelChannelId).catch(() => null);
-    if (!panelChannel?.isTextBased()) {
+    if (!panelChannel?.isTextBased() || !("threads" in panelChannel)) {
       await interaction.reply({
         content: "티켓 패널 채널을 찾을 수 없어요. 설정을 확인해주세요.",
         ephemeral: true,

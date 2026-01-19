@@ -1,19 +1,10 @@
 "use strict";
-const { SlashCommandBuilder, PermissionsBitField, ChannelType, } = require("discord.js");
-const { getConfig, setTicketChannel, setTicketPanelMessage, setTicketCategory, setTicketTranscriptChannel, addTicketSupportRole, removeTicketSupportRole, addTicketRecipient, removeTicketRecipient, } = require("../config/guildConfigRepo");
-const { postTicketPanel } = require("../tickets/ticketService");
-const { getOpenTicketByChannel, closeTicketSession, setTicketClaim, touchTicket, } = require("../tickets/ticketService");
-function canManage(interaction, config) {
-    const hasAdmin = interaction.memberPermissions?.has(PermissionsBitField.Flags.ManageGuild);
-    if (hasAdmin)
-        return true;
-    const hasAllowedRole = !!config?.command_role_ids?.length &&
-        interaction.member?.roles?.cache?.some((role) => config.command_role_ids.includes(role.id));
-    if (hasAllowedRole)
-        return true;
-    const hasAllowedUser = config?.command_user_ids?.includes(interaction.user.id);
-    return !!hasAllowedUser;
-}
+Object.defineProperty(exports, "__esModule", { value: true });
+const discord_js_1 = require("discord.js");
+const guildConfigRepo_1 = require("../config/guildConfigRepo");
+const ticketService_1 = require("../tickets/ticketService");
+const permissions_1 = require("../core/permissions");
+const mentions_1 = require("../core/formatters/mentions");
 function isSupport(interaction, config) {
     if (config?.ticket_support_user_ids?.includes(interaction.user.id))
         return true;
@@ -22,12 +13,10 @@ function isSupport(interaction, config) {
     return interaction.member?.roles?.cache?.some((role) => config.ticket_support_role_ids.includes(role.id));
 }
 module.exports = {
-    data: new SlashCommandBuilder()
+    data: new discord_js_1.SlashCommandBuilder()
         .setName("ticket")
         .setDescription("티켓 설정/관리")
-        .addSubcommand((sub) => sub
-        .setName("panel")
-        .setDescription("이 채널에 티켓 생성 버튼(패널 메시지) 올리기"))
+        .addSubcommand((sub) => sub.setName("panel").setDescription("이 채널에 티켓 생성 버튼(패널 메시지) 올리기"))
         .addSubcommand((sub) => sub
         .setName("set-category")
         .setDescription("티켓을 정리할 카테고리(기본값) 설정")
@@ -35,7 +24,7 @@ module.exports = {
         .setName("category")
         .setDescription("카테고리")
         .setRequired(true)
-        .addChannelTypes(ChannelType.GuildCategory)))
+        .addChannelTypes(discord_js_1.ChannelType.GuildCategory)))
         .addSubcommand((sub) => sub
         .setName("set-transcripts")
         .setDescription("티켓 종료 로그(트랜스크립트) 받을 채널 설정")
@@ -43,7 +32,7 @@ module.exports = {
         .setName("channel")
         .setDescription("전송 채널")
         .setRequired(true)
-        .addChannelTypes(ChannelType.GuildText)))
+        .addChannelTypes(discord_js_1.ChannelType.GuildText)))
         .addSubcommand((sub) => sub
         .setName("add-support-role")
         .setDescription("지원팀 역할 추가(티켓 스레드에 초대)")
@@ -63,10 +52,7 @@ module.exports = {
         .addSubcommand((sub) => sub
         .setName("close")
         .setDescription("이 티켓 스레드 닫기(잠금/아카이브)")
-        .addStringOption((option) => option
-        .setName("reason")
-        .setDescription("사유(선택)")
-        .setRequired(false)))
+        .addStringOption((option) => option.setName("reason").setDescription("사유(선택)")))
         .addSubcommand((sub) => sub.setName("claim").setDescription("이 티켓 담당하기(클레임)"))
         .addSubcommand((sub) => sub.setName("unclaim").setDescription("담당 해제하기(언클레임)"))
         .addSubcommand((sub) => sub
@@ -90,8 +76,10 @@ module.exports = {
             return;
         }
         const guildId = interaction.guild.id;
-        const config = getConfig(guildId);
+        const config = (0, guildConfigRepo_1.getConfig)(guildId);
         const sub = interaction.options.getSubcommand();
+        const hasAdmin = interaction.memberPermissions?.has(discord_js_1.PermissionsBitField.Flags.ManageGuild);
+        const canManage = (0, permissions_1.canManageCommands)(interaction.member, interaction.user.id, config || {}, Boolean(hasAdmin));
         if ([
             "panel",
             "set-category",
@@ -101,7 +89,7 @@ module.exports = {
             "add-support-user",
             "remove-support-user",
         ].includes(sub)) {
-            if (!canManage(interaction, config)) {
+            if (!canManage) {
                 await interaction.reply({
                     content: "이 작업은 관리자 또는 허용된 권한이 필요해요.",
                     ephemeral: true,
@@ -118,9 +106,9 @@ module.exports = {
                 });
                 return;
             }
-            const panel = await postTicketPanel(channel);
-            setTicketChannel(guildId, channel.id);
-            setTicketPanelMessage(guildId, panel.id);
+            const panel = await (0, ticketService_1.postTicketPanel)(channel);
+            (0, guildConfigRepo_1.setTicketChannel)(guildId, channel.id);
+            (0, guildConfigRepo_1.setTicketPanelMessage)(guildId, panel.id);
             await interaction.reply({
                 content: "티켓 패널을 게시했어요.",
                 ephemeral: true,
@@ -129,7 +117,7 @@ module.exports = {
         }
         if (sub === "set-category") {
             const category = interaction.options.getChannel("category", true);
-            setTicketCategory(guildId, category.id);
+            (0, guildConfigRepo_1.setTicketCategory)(guildId, category.id);
             await interaction.reply({
                 content: `티켓 카테고리를 ${category}로 설정했어요.`,
                 ephemeral: true,
@@ -138,7 +126,7 @@ module.exports = {
         }
         if (sub === "set-transcripts") {
             const channel = interaction.options.getChannel("channel", true);
-            setTicketTranscriptChannel(guildId, channel.id);
+            (0, guildConfigRepo_1.setTicketTranscriptChannel)(guildId, channel.id);
             await interaction.reply({
                 content: `트랜스크립트 채널을 ${channel}로 설정했어요.`,
                 ephemeral: true,
@@ -147,41 +135,41 @@ module.exports = {
         }
         if (sub === "add-support-role") {
             const role = interaction.options.getRole("role", true);
-            addTicketSupportRole(guildId, role.id);
+            (0, guildConfigRepo_1.addTicketSupportRole)(guildId, role.id);
             await interaction.reply({
-                content: `티켓 지원 역할에 <@&${role.id}>를 추가했어요.`,
+                content: `티켓 지원 역할에 ${(0, mentions_1.formatRole)(role.id)}를 추가했어요.`,
                 ephemeral: true,
             });
             return;
         }
         if (sub === "remove-support-role") {
             const role = interaction.options.getRole("role", true);
-            removeTicketSupportRole(guildId, role.id);
+            (0, guildConfigRepo_1.removeTicketSupportRole)(guildId, role.id);
             await interaction.reply({
-                content: `티켓 지원 역할에서 <@&${role.id}>를 제거했어요.`,
+                content: `티켓 지원 역할에서 ${(0, mentions_1.formatRole)(role.id)}를 제거했어요.`,
                 ephemeral: true,
             });
             return;
         }
         if (sub === "add-support-user") {
             const user = interaction.options.getUser("user", true);
-            addTicketRecipient(guildId, user.id);
+            (0, guildConfigRepo_1.addTicketRecipient)(guildId, user.id);
             await interaction.reply({
-                content: `티켓 지원 유저에 <@${user.id}>를 추가했어요.`,
+                content: `티켓 지원 유저에 ${(0, mentions_1.formatUser)(user.id)}를 추가했어요.`,
                 ephemeral: true,
             });
             return;
         }
         if (sub === "remove-support-user") {
             const user = interaction.options.getUser("user", true);
-            removeTicketRecipient(guildId, user.id);
+            (0, guildConfigRepo_1.removeTicketRecipient)(guildId, user.id);
             await interaction.reply({
-                content: `티켓 지원 유저에서 <@${user.id}>를 제거했어요.`,
+                content: `티켓 지원 유저에서 ${(0, mentions_1.formatUser)(user.id)}를 제거했어요.`,
                 ephemeral: true,
             });
             return;
         }
-        const ticket = getOpenTicketByChannel(guildId, interaction.channel.id);
+        const ticket = (0, ticketService_1.getOpenTicketByChannel)(guildId, interaction.channel.id);
         if (!ticket) {
             await interaction.reply({
                 content: "이 채널은 티켓 채널이 아니에요.",
@@ -200,8 +188,8 @@ module.exports = {
                 return;
             }
             const reason = interaction.options.getString("reason") || null;
-            closeTicketSession(ticket.id, interaction.user.id, reason);
-            touchTicket(ticket.id);
+            (0, ticketService_1.closeTicketSession)(ticket.id, interaction.user.id, reason);
+            (0, ticketService_1.touchTicket)(ticket.id);
             await interaction.reply({
                 content: "티켓을 닫았어요. (버튼 닫기와 동일하게 처리됩니다)",
                 ephemeral: true,
@@ -216,9 +204,9 @@ module.exports = {
                 });
                 return;
             }
-            setTicketClaim(ticket.id, interaction.user.id);
+            (0, ticketService_1.setTicketClaim)(ticket.id, interaction.user.id);
             await interaction.reply({
-                content: `이 티켓을 <@${interaction.user.id}>가 클레임했어요.`,
+                content: `이 티켓을 ${(0, mentions_1.formatUser)(interaction.user.id)}가 클레임했어요.`,
                 ephemeral: false,
             });
             return;
@@ -231,7 +219,7 @@ module.exports = {
                 });
                 return;
             }
-            setTicketClaim(ticket.id, null);
+            (0, ticketService_1.setTicketClaim)(ticket.id, null);
             await interaction.reply({
                 content: "클레임이 해제되었어요.",
                 ephemeral: false,
@@ -247,9 +235,9 @@ module.exports = {
                 return;
             }
             const user = interaction.options.getUser("user", true);
-            setTicketClaim(ticket.id, user.id);
+            (0, ticketService_1.setTicketClaim)(ticket.id, user.id);
             await interaction.reply({
-                content: `클레임을 <@${user.id}>에게 전달했어요.`,
+                content: `클레임을 ${(0, mentions_1.formatUser)(user.id)}에게 전달했어요.`,
                 ephemeral: false,
             });
             return;
@@ -289,8 +277,8 @@ module.exports = {
             }
             await interaction.reply({
                 content: sub === "add"
-                    ? `티켓에 <@${user.id}>를 추가했어요.`
-                    : `티켓에서 <@${user.id}>를 제거했어요.`,
+                    ? `티켓에 ${(0, mentions_1.formatUser)(user.id)}를 추가했어요.`
+                    : `티켓에서 ${(0, mentions_1.formatUser)(user.id)}를 제거했어요.`,
                 ephemeral: false,
             });
         }

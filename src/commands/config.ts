@@ -135,7 +135,8 @@ module.exports = {
       return;
     }
 
-    const guildId = interaction.guild.id;
+    const guild = interaction.guild!;
+    const guildId = guild.id;
     const config = getConfig(guildId);
     const hasAdmin = interaction.memberPermissions?.has(
       PermissionsBitField.Flags.ManageGuild

@@ -28,6 +28,14 @@ import { formatEmojiKey } from "../core/formatters/mentions";
 import { parseEmojiToken } from "../core/parsers/emoji";
 import { parseTimeToMs } from "../core/parsers/time";
 
+type RrRule = {
+  message_id: string;
+  emoji_key: string;
+  role_id: string;
+  type: string;
+  toggle_group?: string | null;
+};
+
 async function fetchActiveMessage(interaction: ChatInputCommandInteraction) {
   const active = getActiveMessage(interaction.guild!.id);
   if (!active?.message_id) return null;
@@ -299,7 +307,8 @@ module.exports = {
       return;
     }
 
-    const guildId = interaction.guild.id;
+    const guild = interaction.guild!;
+    const guildId = guild.id;
     const config = getConfig(guildId);
     const hasAdmin = interaction.memberPermissions?.has(
       PermissionsBitField.Flags.ManageGuild
@@ -342,7 +351,7 @@ module.exports = {
         });
         return;
       }
-      const channel = await interaction.guild.channels.fetch(active.channel_id).catch(() => null);
+      const channel = await guild.channels.fetch(active.channel_id).catch(() => null);
       if (!channel?.isTextBased()) {
         await interaction.reply({
           content: "활성 채널을 찾을 수 없어요.",
@@ -444,7 +453,7 @@ module.exports = {
         });
         return;
       }
-      const grouped: Record<string, typeof rules> = {};
+      const grouped: Record<string, RrRule[]> = {};
       for (const rule of rules) {
         grouped[rule.message_id] = grouped[rule.message_id] || [];
         grouped[rule.message_id].push(rule);
@@ -452,7 +461,7 @@ module.exports = {
       const lines = Object.entries(grouped).map(([msgId, items]) => {
         const detail = items
           .map(
-            (rule) =>
+            (rule: RrRule) =>
               `${formatEmojiKey(rule.emoji_key)} → ${formatRole(rule.role_id)} (${rule.type}${
                 rule.toggle_group ? `:${rule.toggle_group}` : ""
               })`
@@ -512,7 +521,7 @@ module.exports = {
           });
           return;
         }
-        const channel = await interaction.guild.channels.fetch(channelId).catch(() => null);
+        const channel = await guild.channels.fetch(channelId).catch(() => null);
         const message = channel?.isTextBased()
           ? await channel.messages.fetch(messageId).catch(() => null)
           : null;
@@ -564,7 +573,10 @@ module.exports = {
           });
           return;
         }
-        const lines = items.map((item) => `- ${item.target}: ${formatRole(item.role_id)}`);
+        const lines = items.map(
+          (item: { target: string; role_id: string }) =>
+            `- ${item.target}: ${formatRole(item.role_id)}`
+        );
         await interaction.reply({
           content: `autorole 목록\n${lines.join("\n")}`,
           ephemeral: true,
@@ -611,7 +623,8 @@ module.exports = {
           return;
         }
         const lines = items.map(
-          (item) => `- ${formatRole(item.role_id)}: ${Math.round(item.delay_ms / 60000)}분`
+          (item: { role_id: string; delay_ms: number }) =>
+            `- ${formatRole(item.role_id)}: ${Math.round(item.delay_ms / 60000)}분`
         );
         await interaction.reply({
           content: `timed role 목록\n${lines.join("\n")}`,
@@ -654,7 +667,8 @@ module.exports = {
           return;
         }
         const lines = items.map(
-          (item) => `- <#${item.voice_channel_id}>: ${formatRole(item.role_id)}`
+          (item: { voice_channel_id: string; role_id: string }) =>
+            `- <#${item.voice_channel_id}>: ${formatRole(item.role_id)}`
         );
         await interaction.reply({
           content: `음성 채널 역할 목록\n${lines.join("\n")}`,

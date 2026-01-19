@@ -1,35 +1,24 @@
 "use strict";
-const { SlashCommandBuilder, PermissionsBitField, ChannelType, } = require("discord.js");
-const { getConfig, setJoinDelayMs, setBaseRole, setIntro, addCommandRole, removeCommandRole, addCommandUser, removeCommandUser, clearField, resetConfig, } = require("../config/guildConfigRepo");
-function formatRole(id) {
-    return id ? `<@&${id}>` : "미설정";
-}
-function formatChannel(id) {
-    return id ? `<#${id}>` : "미설정";
-}
-function formatUser(id) {
-    return id ? `<@${id}>` : "미설정";
-}
-function formatUsers(ids) {
-    if (!ids?.length)
-        return "미설정";
-    return ids.map((id) => `<@${id}>`).join(", ");
-}
+Object.defineProperty(exports, "__esModule", { value: true });
+const discord_js_1 = require("discord.js");
+const guildConfigRepo_1 = require("../config/guildConfigRepo");
+const permissions_1 = require("../core/permissions");
+const mentions_1 = require("../core/formatters/mentions");
 function formatRoles(ids) {
     if (!ids?.length)
         return "미설정";
-    return ids.map((id) => formatRole(id)).join(", ");
+    return ids.map((id) => (0, mentions_1.formatRole)(id)).join(", ");
 }
 function formatUsersList(ids) {
     if (!ids?.length)
         return "미설정";
-    return ids.map((id) => formatUser(id)).join(", ");
+    return ids.map((id) => (0, mentions_1.formatUser)(id)).join(", ");
 }
 function formatSeconds(ms) {
     return `${Math.max(0, Math.round((ms || 0) / 1000))}초`;
 }
 module.exports = {
-    data: new SlashCommandBuilder()
+    data: new discord_js_1.SlashCommandBuilder()
         .setName("config")
         .setDescription("온보딩/역할 부여 봇 설정")
         .addSubcommand((sub) => sub
@@ -46,12 +35,12 @@ module.exports = {
         .setMinValue(0)))
         .addSubcommand((sub) => sub
         .setName("set-intro")
-        .setDescription("자기소개 채널/역할/체크 이모지 설정")
+        .setDescription("자기소개 채널/역할 설정")
         .addChannelOption((option) => option
         .setName("channel")
         .setDescription("자기소개 채널")
         .setRequired(true)
-        .addChannelTypes(ChannelType.GuildText))
+        .addChannelTypes(discord_js_1.ChannelType.GuildText))
         .addRoleOption((option) => option.setName("role").setDescription("역할").setRequired(true)))
         .addSubcommand((sub) => sub
         .setName("allow-command-role")
@@ -88,12 +77,10 @@ module.exports = {
             return;
         }
         const guildId = interaction.guild.id;
-        const config = getConfig(guildId);
-        const hasAdmin = interaction.memberPermissions?.has(PermissionsBitField.Flags.ManageGuild);
-        const hasAllowedRole = !!config?.command_role_ids?.length &&
-            interaction.member?.roles?.cache?.some((role) => config.command_role_ids.includes(role.id));
-        const hasAllowedUser = config?.command_user_ids?.includes(interaction.user.id);
-        if (!hasAdmin && !hasAllowedRole && !hasAllowedUser) {
+        const config = (0, guildConfigRepo_1.getConfig)(guildId);
+        const hasAdmin = interaction.memberPermissions?.has(discord_js_1.PermissionsBitField.Flags.ManageGuild);
+        const allowed = (0, permissions_1.canManageCommands)(interaction.member, interaction.user.id, config || {}, Boolean(hasAdmin));
+        if (!allowed) {
             await interaction.reply({
                 content: "이 명령을 사용하려면 서버 관리 권한 또는 허용된 역할이 필요해요.",
                 ephemeral: true,
@@ -103,9 +90,9 @@ module.exports = {
         const sub = interaction.options.getSubcommand();
         if (sub === "set-base-role") {
             const role = interaction.options.getRole("role", true);
-            setBaseRole(guildId, role.id);
+            (0, guildConfigRepo_1.setBaseRole)(guildId, role.id);
             await interaction.reply({
-                content: `입장 기본 권한 역할을 ${formatRole(role.id)}로 설정했어요.`,
+                content: `입장 기본 권한 역할을 ${(0, mentions_1.formatRole)(role.id)}로 설정했어요.`,
                 ephemeral: true,
             });
             return;
@@ -113,7 +100,7 @@ module.exports = {
         if (sub === "set-join-delay") {
             const seconds = interaction.options.getInteger("seconds", true);
             const ms = Math.max(0, Number(seconds) * 1000);
-            setJoinDelayMs(guildId, ms);
+            (0, guildConfigRepo_1.setJoinDelayMs)(guildId, ms);
             await interaction.reply({
                 content: `입장 딜레이를 ${seconds}초로 설정했어요.`,
                 ephemeral: true,
@@ -123,9 +110,9 @@ module.exports = {
         if (sub === "set-intro") {
             const channel = interaction.options.getChannel("channel", true);
             const role = interaction.options.getRole("role", true);
-            setIntro(guildId, channel.id, role.id);
+            (0, guildConfigRepo_1.setIntro)(guildId, channel.id, role.id);
             await interaction.reply({
-                content: `자기소개 채널 ${formatChannel(channel.id)}, 역할 ${formatRole(role.id)}로 설정했어요.`,
+                content: `자기소개 채널 ${(0, mentions_1.formatChannel)(channel.id)}, 역할 ${(0, mentions_1.formatRole)(role.id)}로 설정했어요.`,
                 ephemeral: true,
             });
             return;
@@ -139,9 +126,9 @@ module.exports = {
                 return;
             }
             const role = interaction.options.getRole("role", true);
-            addCommandRole(guildId, role.id);
+            (0, guildConfigRepo_1.addCommandRole)(guildId, role.id);
             await interaction.reply({
-                content: `커맨드 허용 역할에 ${formatRole(role.id)}를 추가했어요.`,
+                content: `커맨드 허용 역할에 ${(0, mentions_1.formatRole)(role.id)}를 추가했어요.`,
                 ephemeral: true,
             });
             return;
@@ -155,9 +142,9 @@ module.exports = {
                 return;
             }
             const user = interaction.options.getUser("user", true);
-            addCommandUser(guildId, user.id);
+            (0, guildConfigRepo_1.addCommandUser)(guildId, user.id);
             await interaction.reply({
-                content: `커맨드 허용 유저에 ${formatUser(user.id)}를 추가했어요.`,
+                content: `커맨드 허용 유저에 ${(0, mentions_1.formatUser)(user.id)}를 추가했어요.`,
                 ephemeral: true,
             });
             return;
@@ -171,9 +158,9 @@ module.exports = {
                 return;
             }
             const user = interaction.options.getUser("user", true);
-            removeCommandUser(guildId, user.id);
+            (0, guildConfigRepo_1.removeCommandUser)(guildId, user.id);
             await interaction.reply({
-                content: `커맨드 허용 유저에서 ${formatUser(user.id)}를 제거했어요.`,
+                content: `커맨드 허용 유저에서 ${(0, mentions_1.formatUser)(user.id)}를 제거했어요.`,
                 ephemeral: true,
             });
             return;
@@ -187,16 +174,16 @@ module.exports = {
                 return;
             }
             const role = interaction.options.getRole("role", true);
-            removeCommandRole(guildId, role.id);
+            (0, guildConfigRepo_1.removeCommandRole)(guildId, role.id);
             await interaction.reply({
-                content: `커맨드 허용 역할에서 ${formatRole(role.id)}를 제거했어요.`,
+                content: `커맨드 허용 역할에서 ${(0, mentions_1.formatRole)(role.id)}를 제거했어요.`,
                 ephemeral: true,
             });
             return;
         }
         if (sub === "show") {
-            const config = getConfig(guildId);
-            if (!config) {
+            const current = (0, guildConfigRepo_1.getConfig)(guildId);
+            if (!current) {
                 await interaction.reply({
                     content: "현재 설정이 없습니다. 먼저 /config 명령으로 설정해주세요.",
                     ephemeral: true,
@@ -204,12 +191,12 @@ module.exports = {
                 return;
             }
             const lines = [
-                `- base_role: ${formatRole(config.base_role_id)}`,
-                `- join_delay: ${formatSeconds(config.join_delay_ms)}`,
-                `- intro_channel: ${formatChannel(config.intro_channel_id)}`,
-                `- intro_role: ${formatRole(config.intro_role_id)}`,
-                `- command_roles: ${formatRoles(config.command_role_ids)}`,
-                `- command_users: ${formatUsersList(config.command_user_ids)}`,
+                `- base_role: ${(0, mentions_1.formatRole)(current.base_role_id)}`,
+                `- join_delay: ${formatSeconds(current.join_delay_ms)}`,
+                `- intro_channel: ${(0, mentions_1.formatChannel)(current.intro_channel_id)}`,
+                `- intro_role: ${(0, mentions_1.formatRole)(current.intro_role_id)}`,
+                `- command_roles: ${formatRoles(current.command_role_ids)}`,
+                `- command_users: ${formatUsersList(current.command_user_ids)}`,
             ];
             await interaction.reply({
                 content: `현재 설정\n${lines.join("\n")}`,
@@ -219,7 +206,7 @@ module.exports = {
         }
         if (sub === "clear") {
             const field = interaction.options.getString("field", true);
-            const ok = clearField(guildId, field);
+            const ok = (0, guildConfigRepo_1.clearField)(guildId, field);
             if (!ok) {
                 await interaction.reply({
                     content: "알 수 없는 설정 항목이에요.",
@@ -234,7 +221,7 @@ module.exports = {
             return;
         }
         if (sub === "reset") {
-            resetConfig(guildId);
+            (0, guildConfigRepo_1.resetConfig)(guildId);
             await interaction.reply({
                 content: "모든 설정을 초기화했어요.",
                 ephemeral: true,

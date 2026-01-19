@@ -1,11 +1,11 @@
 "use strict";
-const { getConfig } = require("../config/guildConfigRepo");
-const { assignRole } = require("../utils/discord");
+Object.defineProperty(exports, "__esModule", { value: true });
+const serviceContainer_1 = require("../presentation/discord/serviceContainer");
 async function resolveMember(message) {
     if (message.member)
         return message.member;
     try {
-        return await message.guild.members.fetch(message.author.id);
+        return await message.guild?.members.fetch(message.author.id);
     }
     catch {
         return null;
@@ -26,17 +26,13 @@ module.exports = {
         }
         if (!message.guild)
             return;
-        const config = getConfig(message.guild.id);
-        if (!config)
-            return;
         const member = await resolveMember(message);
         if (!member)
             return;
-        const channelId = message.channel.id;
-        if (config.intro_channel_id &&
-            channelId === config.intro_channel_id &&
-            config.intro_role_id) {
-            await assignRole(member, config.intro_role_id, "intro-role");
-        }
+        await serviceContainer_1.introRoleService.handleIntroMessage({
+            guildId: message.guild.id,
+            channelId: message.channel.id,
+            member,
+        });
     },
 };

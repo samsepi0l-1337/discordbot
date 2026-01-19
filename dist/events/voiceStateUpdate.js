@@ -1,25 +1,18 @@
 "use strict";
-const { assignRole, removeRole } = require("../utils/discord");
-const { listVoiceRolesByChannel } = require("../config/voiceRoleRepo");
+Object.defineProperty(exports, "__esModule", { value: true });
+const serviceContainer_1 = require("../presentation/discord/serviceContainer");
 module.exports = {
     name: "voiceStateUpdate",
     async execute(oldState, newState) {
         if (oldState.member?.user?.bot || newState.member?.user?.bot)
             return;
-        const guildId = newState.guild.id;
-        const oldChannelId = oldState.channelId;
-        const newChannelId = newState.channelId;
-        if (oldChannelId && oldChannelId !== newChannelId) {
-            const roles = listVoiceRolesByChannel(guildId, oldChannelId);
-            for (const rule of roles) {
-                await removeRole(newState.member, rule.role_id, "voice-role-remove");
-            }
-        }
-        if (newChannelId && oldChannelId !== newChannelId) {
-            const roles = listVoiceRolesByChannel(guildId, newChannelId);
-            for (const rule of roles) {
-                await assignRole(newState.member, rule.role_id, "voice-role-add");
-            }
-        }
+        if (!newState.member)
+            return;
+        await serviceContainer_1.voiceRoleService.handleVoiceStateUpdate({
+            guildId: newState.guild.id,
+            beforeChannelId: oldState.channelId,
+            afterChannelId: newState.channelId,
+            member: newState.member,
+        });
     },
 };

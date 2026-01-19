@@ -1,10 +1,14 @@
 "use strict";
-require("dotenv").config();
-const fs = require("node:fs");
-const path = require("node:path");
-const { Client, Collection, GatewayIntentBits, Partials, } = require("discord.js");
-const { getConfig } = require("./config/guildConfigRepo");
-const { TICKET_CREATE_BUTTON_ID, createTicketChannelTicket, handleTicketCloseButton, handleTicketClaimButton, purgeOldTickets, } = require("./tickets/ticketService");
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+require("dotenv/config");
+const node_fs_1 = __importDefault(require("node:fs"));
+const node_path_1 = __importDefault(require("node:path"));
+const discord_js_1 = require("discord.js");
+const guildConfigRepo_1 = require("./config/guildConfigRepo");
+const ticketService_1 = require("./tickets/ticketService");
 const DEFAULT_TICKET_RETENTION_DAYS = 30;
 const TICKET_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 function getTicketRetentionMs() {
@@ -16,7 +20,7 @@ function startTicketCleanup() {
     const retentionMs = getTicketRetentionMs();
     const runCleanup = () => {
         try {
-            const result = purgeOldTickets(retentionMs);
+            const result = (0, ticketService_1.purgeOldTickets)(retentionMs);
             if (result.sessionsDeleted || result.forwardsDeleted) {
                 console.log(`[ticket-cleanup] sessions=${result.sessionsDeleted}, forwarded=${result.forwardsDeleted}`);
             }
@@ -33,33 +37,33 @@ if (!token) {
     console.error("Missing DISCORD_TOKEN in environment.");
     process.exit(1);
 }
-const client = new Client({
+const client = new discord_js_1.Client({
     intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.GuildMessageReactions,
-        GatewayIntentBits.GuildVoiceStates,
-        GatewayIntentBits.DirectMessages,
-        GatewayIntentBits.MessageContent,
+        discord_js_1.GatewayIntentBits.Guilds,
+        discord_js_1.GatewayIntentBits.GuildMembers,
+        discord_js_1.GatewayIntentBits.GuildMessages,
+        discord_js_1.GatewayIntentBits.GuildMessageReactions,
+        discord_js_1.GatewayIntentBits.GuildVoiceStates,
+        discord_js_1.GatewayIntentBits.DirectMessages,
+        discord_js_1.GatewayIntentBits.MessageContent,
     ],
-    partials: [Partials.Channel, Partials.Message, Partials.Reaction, Partials.User],
+    partials: [discord_js_1.Partials.Channel, discord_js_1.Partials.Message, discord_js_1.Partials.Reaction, discord_js_1.Partials.User],
 });
-client.commands = new Collection();
-const commandsPath = path.join(__dirname, "commands");
-for (const file of fs.readdirSync(commandsPath)) {
+client.commands = new discord_js_1.Collection();
+const commandsPath = node_path_1.default.join(__dirname, "commands");
+for (const file of node_fs_1.default.readdirSync(commandsPath)) {
     if (!file.endsWith(".js"))
         continue;
-    const command = require(path.join(commandsPath, file));
+    const command = require(node_path_1.default.join(commandsPath, file));
     if (!command?.data || !command?.execute)
         continue;
     client.commands.set(command.data.name, command);
 }
-const eventsPath = path.join(__dirname, "events");
-for (const file of fs.readdirSync(eventsPath)) {
+const eventsPath = node_path_1.default.join(__dirname, "events");
+for (const file of node_fs_1.default.readdirSync(eventsPath)) {
     if (!file.endsWith(".js"))
         continue;
-    const event = require(path.join(eventsPath, file));
+    const event = require(node_path_1.default.join(eventsPath, file));
     if (!event?.name || !event?.execute)
         continue;
     client.on(event.name, (...args) => event.execute(...args));
@@ -93,10 +97,10 @@ client.on("interactionCreate", async (interaction) => {
         });
         return;
     }
-    if (interaction.customId === TICKET_CREATE_BUTTON_ID) {
-        const config = getConfig(interaction.guild.id);
+    if (interaction.customId === ticketService_1.TICKET_CREATE_BUTTON_ID) {
+        const config = (0, guildConfigRepo_1.getConfig)(interaction.guild.id);
         try {
-            await createTicketChannelTicket(interaction, config);
+            await (0, ticketService_1.createTicketChannelTicket)(interaction, config);
         }
         catch (error) {
             console.warn("[ticket-create] Failed:", error);
@@ -111,16 +115,16 @@ client.on("interactionCreate", async (interaction) => {
         return;
     }
     if (interaction.customId === "ticket_close") {
-        await handleTicketCloseButton(interaction);
+        await (0, ticketService_1.handleTicketCloseButton)(interaction);
         return;
     }
     if (interaction.customId === "ticket_claim" || interaction.customId === "ticket_unclaim") {
-        await handleTicketClaimButton(interaction);
+        await (0, ticketService_1.handleTicketClaimButton)(interaction);
         return;
     }
 });
 client.once("ready", () => {
-    console.log(`Logged in as ${client.user.tag}`);
+    console.log(`Logged in as ${client.user?.tag}`);
     startTicketCleanup();
 });
 client.login(token);

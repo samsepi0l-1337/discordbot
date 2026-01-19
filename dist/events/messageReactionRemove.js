@@ -1,33 +1,17 @@
 "use strict";
-const { removeRole } = require("../utils/discord");
-const { listRulesByMessageEmoji } = require("../config/rrRepo");
-const { getDmEnabled } = require("../config/rrSettingsRepo");
-function getEmojiKey(reaction) {
-    const emoji = reaction.emoji;
-    if (emoji?.id)
-        return `c:${emoji.id}`;
-    if (emoji?.name)
-        return `u:${emoji.name}`;
-    return null;
-}
-async function resolveMember(message, user) {
+Object.defineProperty(exports, "__esModule", { value: true });
+const emoji_1 = require("../core/parsers/emoji");
+const serviceContainer_1 = require("../presentation/discord/serviceContainer");
+async function resolveMember(reaction, user) {
+    const message = reaction.message;
     if (message.member)
         return message.member;
     try {
-        return await message.guild.members.fetch(user.id);
+        return await message.guild?.members.fetch(user.id);
     }
     catch {
         return null;
     }
-}
-function formatEmojiKey(key) {
-    if (!key)
-        return "알 수 없음";
-    if (key.startsWith("c:"))
-        return `<:emoji:${key.slice(2)}>`;
-    if (key.startsWith("u:"))
-        return key.slice(2);
-    return key;
 }
 module.exports = {
     name: "messageReactionRemove",
@@ -45,30 +29,18 @@ module.exports = {
         const message = reaction.message;
         if (!message?.guild)
             return;
-        const emojiKey = getEmojiKey(reaction);
+        const emojiKey = (0, emoji_1.emojiKeyFromReaction)(reaction.emoji?.id, reaction.emoji?.name);
         if (!emojiKey)
             return;
-        const rules = listRulesByMessageEmoji(message.guild.id, message.id, emojiKey);
-        if (!rules.length)
-            return;
-        const member = await resolveMember(message, user);
+        const member = await resolveMember(reaction, user);
         if (!member)
             return;
-        const dmEnabled = getDmEnabled(message.guild.id);
-        const dmLines = [];
-        for (const rule of rules) {
-            if (rule.type !== "normal" && rule.type !== "toggle")
-                continue;
-            await removeRole(member, rule.role_id, "rr-remove-reaction");
-            dmLines.push(`역할 제거: ${formatEmojiKey(rule.emoji_key)} → <@&${rule.role_id}>`);
-        }
-        if (dmEnabled && dmLines.length) {
-            try {
-                await user.send({ content: dmLines.join("\n") });
-            }
-            catch {
-                // ignore dm failure
-            }
-        }
+        await serviceContainer_1.reactionRoleService.handleReactionRemove({
+            guildId: message.guild.id,
+            messageId: message.id,
+            emojiKey,
+            member,
+            sendDm: (content) => user.send({ content }),
+        });
     },
 };

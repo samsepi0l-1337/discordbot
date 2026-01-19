@@ -4,6 +4,7 @@ module.exports = {
   transform: {
     "^.+\\.(ts|tsx)$": ["ts-jest", { tsconfig: "tsconfig.json" }],
   },
+  moduleFileExtensions: ["ts", "js", "cjs", "json"],
   clearMocks: true,
   restoreMocks: true,
 };

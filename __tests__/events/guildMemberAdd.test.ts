@@ -42,7 +42,7 @@ describe("event: guildMemberAdd", () => {
 
     // Not yet: timed1 and baseRole
     expect(assignRole).not.toHaveBeenCalledWith(member, "timed1", "timed-role");
-    expect(assignRole).not.toHaveBeenCalledWith(member, "baseRole", "join-base-role");
+    expect(assignRole).not.toHaveBeenCalledWith(member, "baseRole", "base-role");
 
     // After 2s: timed
     jest.advanceTimersByTime(2000);
@@ -50,7 +50,6 @@ describe("event: guildMemberAdd", () => {
 
     // After 5s: base role
     jest.advanceTimersByTime(3000);
-    expect(assignRole).toHaveBeenCalledWith(member, "baseRole", "join-base-role");
+    expect(assignRole).toHaveBeenCalledWith(member, "baseRole", "base-role");
   });
 });
-
