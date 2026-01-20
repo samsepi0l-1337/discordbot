@@ -229,6 +229,21 @@ export class TicketService {
       this.ticketRepo.close(ticket.id, interaction.user.id, "closed-by-button");
       this.ticketRepo.touch(ticket.id);
 
+      // Update the control message (the one with buttons) to show closed state
+      // and remove claim/close buttons.
+      try {
+        await interaction.message.edit({
+          content: [
+            "해당 티켓은 닫혔습니다.",
+            `티켓 #${ticket.id}`,
+            `닫은 사람: <@${interaction.user.id}>`,
+          ].join("\n"),
+          components: [],
+        });
+      } catch {
+        // ignore (missing perms, message deleted, etc.)
+      }
+
       if (config?.ticket_transcript_channel_id) {
         const transcriptChannel = await interaction.guild!.channels
           .fetch(config.ticket_transcript_channel_id)
@@ -249,8 +264,9 @@ export class TicketService {
 
       try {
         if (interaction.channel?.isThread?.()) {
+          // Locking makes the thread read-only for regular members.
+          // Keep it unarchived so participants can still easily view the history.
           await interaction.channel.setLocked(true);
-          await interaction.channel.setArchived(true);
         }
       } catch {
         // ignore
