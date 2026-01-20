@@ -6,8 +6,8 @@ export class SqliteGuildConfigRepo implements GuildConfigRepoPort {
     return configRepo.getConfig(guildId);
   }
 
-  setIntro(guildId: string, channelId: string, roleId: string) {
-    configRepo.setIntro(guildId, channelId, roleId);
+  setIntro(guildId: string, channelId: string, roleId: string, mode?: "add" | "delete") {
+    configRepo.setIntro(guildId, channelId, roleId, mode);
   }
 
   setTicketChannel(guildId: string, channelId: string) {

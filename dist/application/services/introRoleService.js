@@ -12,7 +12,12 @@ class IntroRoleService {
             return;
         if (config.intro_channel_id !== input.channelId)
             return;
-        await this.roleManager.assignRole(input.member, config.intro_role_id, "intro-role");
+        const mode = config.intro_role_mode === "delete" ? "delete" : "add";
+        if (mode === "delete") {
+            await this.roleManager.removeRole(input.member, config.intro_role_id, "intro-role-delete");
+            return;
+        }
+        await this.roleManager.assignRole(input.member, config.intro_role_id, "intro-role-add");
     }
 }
 exports.IntroRoleService = IntroRoleService;

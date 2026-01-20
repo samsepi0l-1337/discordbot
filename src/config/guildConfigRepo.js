@@ -15,6 +15,7 @@ function getConfig(guildId) {
       SELECT guild_id,
              intro_channel_id,
              intro_role_id,
+             intro_role_mode,
              grant_on_post_channel_id,
              grant_on_post_role_id,
              grant_on_post_message_id,
@@ -68,6 +69,7 @@ function getConfig(guildId) {
   }
   return {
     ...row,
+    intro_role_mode: row.intro_role_mode || "add",
     ticket_support_user_ids: recipientIds,
     ticket_support_role_ids: ticketSupportRoleIds,
     command_role_ids: commandRoleIds,
@@ -76,17 +78,19 @@ function getConfig(guildId) {
   };
 }
 
-function setIntro(guildId, channelId, roleId) {
+function setIntro(guildId, channelId, roleId, mode) {
   ensureGuildRow(guildId);
+  const finalMode = mode === "delete" ? "delete" : "add";
   const db = getDb();
   db.prepare(
     `
     UPDATE guild_config
     SET intro_channel_id = ?,
-        intro_role_id = ?
+        intro_role_id = ?,
+        intro_role_mode = ?
     WHERE guild_id = ?
   `
-  ).run(channelId, roleId, guildId);
+  ).run(channelId, roleId, finalMode, guildId);
 }
 
 function setTicketChannel(guildId, channelId) {
@@ -223,6 +227,7 @@ function clearField(guildId, fieldKey) {
   const fieldMap = {
     intro_channel: "intro_channel_id",
     intro_role: "intro_role_id",
+    intro_mode: "intro_role_mode",
     check_emoji: "check_emoji",
     ticket_channel: "ticket_channel_id",
     ticket_panel_message: "ticket_panel_message_id",

@@ -29,6 +29,11 @@ function ensureGuildConfigColumns(dbInstance) {
     .all()
     .map((row) => row.name);
   const missing = [];
+  if (!columns.includes("intro_role_mode")) {
+    missing.push(
+      "ALTER TABLE guild_config ADD COLUMN intro_role_mode TEXT DEFAULT 'add'"
+    );
+  }
   if (!columns.includes("ticket_channel_id")) {
     missing.push("ALTER TABLE guild_config ADD COLUMN ticket_channel_id TEXT");
   }
@@ -113,6 +118,7 @@ function getDb() {
       base_role_id TEXT,
       intro_channel_id TEXT,
       intro_role_id TEXT,
+      intro_role_mode TEXT DEFAULT 'add',
       grant_on_post_channel_id TEXT,
       grant_on_post_role_id TEXT,
       grant_on_post_message_id TEXT,

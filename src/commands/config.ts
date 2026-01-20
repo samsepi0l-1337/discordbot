@@ -38,7 +38,7 @@ module.exports = {
     .addSubcommand((sub) =>
       sub
         .setName("set-intro")
-        .setDescription("자기소개 채널/역할 설정")
+        .setDescription("자기소개 채널/역할 설정 (add=부여, delete=제거)")
         .addChannelOption((option) =>
           option
             .setName("channel")
@@ -48,6 +48,16 @@ module.exports = {
         )
         .addRoleOption((option) =>
           option.setName("role").setDescription("역할").setRequired(true)
+        )
+        .addStringOption((option) =>
+          option
+            .setName("mode")
+            .setDescription("역할 동작")
+            .setRequired(false)
+            .addChoices(
+              { name: "add (역할 부여)", value: "add" },
+              { name: "delete (역할 제거)", value: "delete" }
+            )
         )
     )
     .addSubcommand((sub) =>
@@ -95,6 +105,7 @@ module.exports = {
             .addChoices(
               { name: "intro_channel", value: "intro_channel" },
               { name: "intro_role", value: "intro_role" },
+              { name: "intro_mode", value: "intro_mode" },
               { name: "command_roles", value: "command_roles" },
               { name: "command_users", value: "command_users" }
             )
@@ -136,11 +147,12 @@ module.exports = {
     if (sub === "set-intro") {
       const channel = interaction.options.getChannel("channel", true);
       const role = interaction.options.getRole("role", true);
-      setIntro(guildId, channel.id, role.id);
+      const mode = interaction.options.getString("mode") as "add" | "delete" | null;
+      setIntro(guildId, channel.id, role.id, mode || "add");
       await interaction.reply({
         content: `자기소개 채널 ${formatChannel(channel.id)}, 역할 ${formatRole(
           role.id
-        )}로 설정했어요.`,
+        )}, mode=${mode || "add"} 로 설정했어요.`,
         ephemeral: true,
       });
       return;
@@ -226,6 +238,7 @@ module.exports = {
       const lines = [
         `- intro_channel: ${formatChannel(current.intro_channel_id)}`,
         `- intro_role: ${formatRole(current.intro_role_id)}`,
+        `- intro_mode: ${current.intro_role_mode || "add"}`,
         `- command_roles: ${formatRoles(current.command_role_ids)}`,
         `- command_users: ${formatUsersList(current.command_user_ids)}`,
       ];

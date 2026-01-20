@@ -39,8 +39,8 @@ class SqliteGuildConfigRepo {
     getConfig(guildId) {
         return configRepo.getConfig(guildId);
     }
-    setIntro(guildId, channelId, roleId) {
-        configRepo.setIntro(guildId, channelId, roleId);
+    setIntro(guildId, channelId, roleId, mode) {
+        configRepo.setIntro(guildId, channelId, roleId, mode);
     }
     setTicketChannel(guildId, channelId) {
         configRepo.setTicketChannel(guildId, channelId);
