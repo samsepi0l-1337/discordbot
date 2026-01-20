@@ -38,7 +38,7 @@ module.exports = {
     .addSubcommand((sub) =>
       sub
         .setName("set-intro")
-        .setDescription("자기소개 채널/역할 설정 (add=부여, delete=제거)")
+        .setDescription("자기소개 채널/역할 설정 (add=부여, remove=제거)")
         .addChannelOption((option) =>
           option
             .setName("channel")
@@ -56,7 +56,7 @@ module.exports = {
             .setRequired(false)
             .addChoices(
               { name: "add (역할 부여)", value: "add" },
-              { name: "delete (역할 제거)", value: "delete" }
+              { name: "remove (역할 제거)", value: "remove" }
             )
         )
     )
@@ -104,8 +104,8 @@ module.exports = {
             .setRequired(true)
             .addChoices(
               { name: "intro_channel", value: "intro_channel" },
-              { name: "intro_role", value: "intro_role" },
-              { name: "intro_mode", value: "intro_mode" },
+              { name: "intro_add_role", value: "intro_add_role" },
+              { name: "intro_remove_role", value: "intro_remove_role" },
               { name: "command_roles", value: "command_roles" },
               { name: "command_users", value: "command_users" }
             )
@@ -147,7 +147,7 @@ module.exports = {
     if (sub === "set-intro") {
       const channel = interaction.options.getChannel("channel", true);
       const role = interaction.options.getRole("role", true);
-      const mode = interaction.options.getString("mode") as "add" | "delete" | null;
+      const mode = interaction.options.getString("mode") as "add" | "remove" | null;
       setIntro(guildId, channel.id, role.id, mode || "add");
       await interaction.reply({
         content: `자기소개 채널 ${formatChannel(channel.id)}, 역할 ${formatRole(
@@ -237,8 +237,8 @@ module.exports = {
       }
       const lines = [
         `- intro_channel: ${formatChannel(current.intro_channel_id)}`,
-        `- intro_role: ${formatRole(current.intro_role_id)}`,
-        `- intro_mode: ${current.intro_role_mode || "add"}`,
+        `- intro_add_role: ${formatRole(current.intro_add_role_id)}`,
+        `- intro_remove_role: ${formatRole(current.intro_remove_role_id)}`,
         `- command_roles: ${formatRoles(current.command_role_ids)}`,
         `- command_users: ${formatUsersList(current.command_user_ids)}`,
       ];

@@ -1,8 +1,8 @@
 export type GuildConfig = {
   guild_id: string;
   intro_channel_id?: string | null;
-  intro_role_id?: string | null;
-  intro_role_mode?: "add" | "delete" | null;
+  intro_add_role_id?: string | null;
+  intro_remove_role_id?: string | null;
   command_role_ids?: string[];
   command_user_ids?: string[];
   ticket_channel_id?: string | null;
@@ -15,7 +15,7 @@ export type GuildConfig = {
 
 export interface GuildConfigRepoPort {
   getConfig(guildId: string): GuildConfig | null;
-  setIntro(guildId: string, channelId: string, roleId: string, mode?: "add" | "delete"): void;
+  setIntro(guildId: string, channelId: string, roleId: string, mode?: "add" | "remove"): void;
   setTicketChannel(guildId: string, channelId: string): void;
   setTicketPanelMessage(guildId: string, messageId: string): void;
   setTicketCategory(guildId: string, categoryId: string): void;

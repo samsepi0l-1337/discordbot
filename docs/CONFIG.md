@@ -16,13 +16,14 @@
 
 ### `/config set-intro`
 
-- **매개변수**: `channel` (자기소개 채널), `role` (대상 역할), `mode` (`add|delete`, optional; default `add`)
+- **매개변수**: `channel` (자기소개 채널), `role` (대상 역할), `mode` (`add|remove`, optional; default `add`)
 - **실행 로직**:
-    1. `intro_channel_id`, `intro_role_id`, `intro_role_mode`를 저장합니다.
+    1. `intro_channel_id`와 `intro_add_role_id` 또는 `intro_remove_role_id`를 저장합니다. (`mode`에 따라 분기)
     2. `messageCreate` 이벤트가 발생할 때마다 메시지가 작성된 채널 ID를 확인합니다.
     3. 작성 채널이 설정된 채널과 일치하면 메시지에 `✅` 리액션을 추가합니다.
-    4. `mode`에 따라 역할을 **부여(add)**하거나 **제거(delete)**합니다.
-- **결과**: 특정 채널에 메시지를 남긴 유저에게 역할을 자동으로 부여/제거합니다.
+    4. 설정된 `intro_remove_role_id`가 있으면 역할을 제거합니다.
+    5. 설정된 `intro_add_role_id`가 있으면 역할을 부여합니다.
+- **결과**: 같은 채널에서 **역할 부여(add)**와 **역할 제거(remove)**를 동시에 적용할 수 있습니다.
 
 ### `/config allow-command-role` / `allow-command-user`
 
