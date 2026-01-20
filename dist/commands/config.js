@@ -23,7 +23,7 @@ module.exports = {
         .setDescription("봇 관리 권한 및 기본 채널 설정")
         .addSubcommand((sub) => sub
         .setName("set-intro")
-        .setDescription("자기소개 채널/역할 설정 (add=부여, delete=제거)")
+        .setDescription("자기소개 채널/역할 설정 (add=부여, remove=제거)")
         .addChannelOption((option) => option
         .setName("channel")
         .setDescription("자기소개 채널")
@@ -34,7 +34,7 @@ module.exports = {
         .setName("mode")
         .setDescription("역할 동작")
         .setRequired(false)
-        .addChoices({ name: "add (역할 부여)", value: "add" }, { name: "delete (역할 제거)", value: "delete" })))
+        .addChoices({ name: "add (역할 부여)", value: "add" }, { name: "remove (역할 제거)", value: "remove" })))
         .addSubcommand((sub) => sub
         .setName("allow-command-role")
         .setDescription("봇 커맨드 사용 허용 역할 추가")
@@ -59,7 +59,7 @@ module.exports = {
         .setName("field")
         .setDescription("초기화 항목")
         .setRequired(true)
-        .addChoices({ name: "intro_channel", value: "intro_channel" }, { name: "intro_role", value: "intro_role" }, { name: "intro_mode", value: "intro_mode" }, { name: "command_roles", value: "command_roles" }, { name: "command_users", value: "command_users" })))
+        .addChoices({ name: "intro_channel", value: "intro_channel" }, { name: "intro_add_role", value: "intro_add_role" }, { name: "intro_remove_role", value: "intro_remove_role" }, { name: "command_roles", value: "command_roles" }, { name: "command_users", value: "command_users" })))
         .addSubcommand((sub) => sub.setName("reset").setDescription("모든 설정 초기화")),
     async execute(interaction) {
         if (!interaction.inGuild()) {
@@ -168,8 +168,8 @@ module.exports = {
             }
             const lines = [
                 `- intro_channel: ${(0, mentions_1.formatChannel)(current.intro_channel_id)}`,
-                `- intro_role: ${(0, mentions_1.formatRole)(current.intro_role_id)}`,
-                `- intro_mode: ${current.intro_role_mode || "add"}`,
+                `- intro_add_role: ${(0, mentions_1.formatRole)(current.intro_add_role_id)}`,
+                `- intro_remove_role: ${(0, mentions_1.formatRole)(current.intro_remove_role_id)}`,
                 `- command_roles: ${formatRoles(current.command_role_ids)}`,
                 `- command_users: ${formatUsersList(current.command_user_ids)}`,
             ];

@@ -11,6 +11,8 @@ function getConfig(guildId) {
       SELECT guild_id,
              intro_channel_id,
              intro_role_id,
+             intro_add_role_id,
+             intro_remove_role_id,
              intro_role_mode,
              grant_on_post_channel_id,
              grant_on_post_role_id,
@@ -64,9 +66,19 @@ function getConfig(guildId) {
             grantOnPostEmojiMap = {};
         }
     }
+    // Backwards compatibility:
+    // Older schema used intro_role_id + intro_role_mode (one of add/delete) which could not express both.
+    // If new columns are empty but legacy exists, map legacy to the corresponding new field.
+    const legacyMode = row.intro_role_mode || "add";
+    const derivedAdd = row.intro_add_role_id ||
+        (row.intro_role_id && legacyMode !== "delete" ? row.intro_role_id : null);
+    const derivedRemove = row.intro_remove_role_id ||
+        (row.intro_role_id && legacyMode === "delete" ? row.intro_role_id : null);
     return {
         ...row,
-        intro_role_mode: row.intro_role_mode || "add",
+        intro_role_mode: legacyMode,
+        intro_add_role_id: derivedAdd,
+        intro_remove_role_id: derivedRemove,
         ticket_support_user_ids: recipientIds,
         ticket_support_role_ids: ticketSupportRoleIds,
         command_role_ids: commandRoleIds,
@@ -76,15 +88,23 @@ function getConfig(guildId) {
 }
 function setIntro(guildId, channelId, roleId, mode) {
     ensureGuildRow(guildId);
-    const finalMode = mode === "delete" ? "delete" : "add";
+    const normalizedMode = mode === "delete" || mode === "remove" ? "remove" : "add";
     const db = getDb();
+    if (normalizedMode === "remove") {
+        db.prepare(`
+      UPDATE guild_config
+      SET intro_channel_id = ?,
+          intro_remove_role_id = ?
+      WHERE guild_id = ?
+    `).run(channelId, roleId, guildId);
+        return;
+    }
     db.prepare(`
     UPDATE guild_config
     SET intro_channel_id = ?,
-        intro_role_id = ?,
-        intro_role_mode = ?
+        intro_add_role_id = ?
     WHERE guild_id = ?
-  `).run(channelId, roleId, finalMode, guildId);
+  `).run(channelId, roleId, guildId);
 }
 function setTicketChannel(guildId, channelId) {
     ensureGuildRow(guildId);
@@ -182,6 +202,9 @@ function removeCommandUser(guildId, userId) {
 function clearField(guildId, fieldKey) {
     const fieldMap = {
         intro_channel: "intro_channel_id",
+        intro_add_role: "intro_add_role_id",
+        intro_remove_role: "intro_remove_role_id",
+        // legacy fields (kept for older DB rows / compatibility)
         intro_role: "intro_role_id",
         intro_mode: "intro_role_mode",
         check_emoji: "check_emoji",
