@@ -5,6 +5,19 @@ const guildConfigRepo_1 = require("../config/guildConfigRepo");
 const ticketService = require("../tickets/ticketService");
 const permissions_1 = require("../core/permissions");
 const mentions_1 = require("../core/formatters/mentions");
+function formatRoles(ids) {
+    if (!ids?.length)
+        return "미설정";
+    return ids.map((id) => (0, mentions_1.formatRole)(id)).join(", ");
+}
+function formatUsers(ids) {
+    if (!ids?.length)
+        return "미설정";
+    return ids.map((id) => (0, mentions_1.formatUser)(id)).join(", ");
+}
+function formatChannel(id) {
+    return id ? `<#${id}>` : "미설정";
+}
 function isSupport(interaction, config) {
     if (config?.ticket_support_user_ids?.includes(interaction.user.id))
         return true;
@@ -13,10 +26,22 @@ function isSupport(interaction, config) {
     const roleCache = interaction.member?.roles?.cache;
     return roleCache?.some((role) => config.ticket_support_role_ids.includes(role.id));
 }
+async function isThreadParticipant(interaction) {
+    if (!interaction.channel?.isThread?.())
+        return false;
+    try {
+        const member = await interaction.channel.members.fetch(interaction.user.id).catch(() => null);
+        return Boolean(member);
+    }
+    catch {
+        return false;
+    }
+}
 module.exports = {
     data: new discord_js_1.SlashCommandBuilder()
         .setName("ticket")
         .setDescription("티켓 설정/관리")
+        .addSubcommand((sub) => sub.setName("show").setDescription("현재 티켓 설정 보기"))
         .addSubcommand((sub) => sub.setName("panel").setDescription("이 채널에 티켓 생성 버튼(패널 메시지) 올리기"))
         .addSubcommand((sub) => sub
         .setName("set-category")
@@ -83,6 +108,7 @@ module.exports = {
         const hasAdmin = interaction.memberPermissions?.has(discord_js_1.PermissionsBitField.Flags.ManageGuild);
         const canManage = (0, permissions_1.canManageCommands)(interaction.member, interaction.user.id, config || {}, Boolean(hasAdmin));
         if ([
+            "show",
             "panel",
             "set-category",
             "set-transcripts",
@@ -98,6 +124,22 @@ module.exports = {
                 });
                 return;
             }
+        }
+        if (sub === "show") {
+            const current = (0, guildConfigRepo_1.getConfig)(guildId) || {};
+            const lines = [
+                `- ticket_channel: ${formatChannel(current.ticket_channel_id)}`,
+                `- ticket_panel_message_id: ${current.ticket_panel_message_id || "미설정"}`,
+                `- ticket_category: ${formatChannel(current.ticket_category_id)}`,
+                `- ticket_transcripts: ${formatChannel(current.ticket_transcript_channel_id)}`,
+                `- support_roles: ${formatRoles(current.ticket_support_role_ids)}`,
+                `- support_users: ${formatUsers(current.ticket_support_user_ids)}`,
+            ];
+            await interaction.reply({
+                content: `현재 티켓 설정\n${lines.join("\n")}`,
+                ephemeral: true,
+            });
+            return;
         }
         if (sub === "panel") {
             const channel = interaction.channel;
@@ -182,7 +224,8 @@ module.exports = {
         const canSupport = isSupport(interaction, config);
         const isOpener = ticket.opener_id === interaction.user.id;
         if (sub === "close") {
-            if (!canSupport && !isOpener) {
+            const isParticipant = await isThreadParticipant(interaction);
+            if (!canSupport && !isOpener && !isParticipant) {
                 await interaction.reply({
                     content: "티켓을 닫을 권한이 없어요.",
                     ephemeral: true,

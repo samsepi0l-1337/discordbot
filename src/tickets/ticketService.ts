@@ -1,6 +1,7 @@
 import { TicketService } from "../application/services/ticketService";
 import {
   TICKET_CREATE_BUTTON_ID,
+  TICKET_CREATE_MODAL_ID,
   TICKET_CLOSE_BUTTON_ID,
   TICKET_CLAIM_BUTTON_ID,
   TICKET_UNCLAIM_BUTTON_ID,
@@ -14,6 +15,7 @@ const service = new TicketService(ticketRepo, configRepo);
 
 const postTicketPanel = service.postTicketPanel.bind(service);
 const createTicketChannelTicket = service.createTicketChannelTicket.bind(service);
+const handleTicketCreateModalSubmit = service.handleTicketCreateModalSubmit.bind(service);
 const handleTicketCloseButton = service.handleTicketCloseButton.bind(service);
 const handleTicketClaimButton = service.handleTicketClaimButton.bind(service);
 const purgeOldTickets = service.purgeOldTickets.bind(service);
@@ -28,6 +30,7 @@ const setTicketClaim = ticketRepo.setClaim.bind(ticketRepo);
 
 module.exports = {
   TICKET_CREATE_BUTTON_ID,
+  TICKET_CREATE_MODAL_ID,
   TICKET_CLOSE_BUTTON_ID,
   TICKET_CLAIM_BUTTON_ID,
   TICKET_UNCLAIM_BUTTON_ID,
@@ -40,6 +43,7 @@ module.exports = {
   closeTicketSession,
   setTicketClaim,
   createTicketChannelTicket,
+  handleTicketCreateModalSubmit,
   handleTicketCloseButton,
   handleTicketClaimButton,
   purgeOldTickets,

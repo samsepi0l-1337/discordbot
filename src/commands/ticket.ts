@@ -19,19 +19,44 @@ const ticketService = require("../tickets/ticketService");
 import { canManageCommands } from "../core/permissions";
 import { formatRole, formatUser } from "../core/formatters/mentions";
 
+function formatRoles(ids?: string[] | null) {
+  if (!ids?.length) return "미설정";
+  return ids.map((id) => formatRole(id)).join(", ");
+}
+
+function formatUsers(ids?: string[] | null) {
+  if (!ids?.length) return "미설정";
+  return ids.map((id) => formatUser(id)).join(", ");
+}
+
+function formatChannel(id?: string | null) {
+  return id ? `<#${id}>` : "미설정";
+}
+
 function isSupport(interaction: ChatInputCommandInteraction, config: any) {
   if (config?.ticket_support_user_ids?.includes(interaction.user.id)) return true;
   if (!config?.ticket_support_role_ids?.length) return false;
   const roleCache = (interaction.member as any)?.roles?.cache;
-  return roleCache?.some((role: { id: string }) =>
+  return roleCache?.some((role: { id: string; }) =>
     config.ticket_support_role_ids.includes(role.id)
   );
+}
+
+async function isThreadParticipant(interaction: ChatInputCommandInteraction) {
+  if (!interaction.channel?.isThread?.()) return false;
+  try {
+    const member = await interaction.channel.members.fetch(interaction.user.id).catch(() => null);
+    return Boolean(member);
+  } catch {
+    return false;
+  }
 }
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("ticket")
     .setDescription("티켓 설정/관리")
+    .addSubcommand((sub) => sub.setName("show").setDescription("현재 티켓 설정 보기"))
     .addSubcommand((sub) =>
       sub.setName("panel").setDescription("이 채널에 티켓 생성 버튼(패널 메시지) 올리기")
     )
@@ -153,6 +178,7 @@ module.exports = {
 
     if (
       [
+        "show",
         "panel",
         "set-category",
         "set-transcripts",
@@ -169,6 +195,23 @@ module.exports = {
         });
         return;
       }
+    }
+
+    if (sub === "show") {
+      const current = getConfig(guildId) || {};
+      const lines = [
+        `- ticket_channel: ${formatChannel(current.ticket_channel_id)}`,
+        `- ticket_panel_message_id: ${current.ticket_panel_message_id || "미설정"}`,
+        `- ticket_category: ${formatChannel(current.ticket_category_id)}`,
+        `- ticket_transcripts: ${formatChannel(current.ticket_transcript_channel_id)}`,
+        `- support_roles: ${formatRoles(current.ticket_support_role_ids)}`,
+        `- support_users: ${formatUsers(current.ticket_support_user_ids)}`,
+      ];
+      await interaction.reply({
+        content: `현재 티켓 설정\n${lines.join("\n")}`,
+        ephemeral: true,
+      });
+      return;
     }
 
     if (sub === "panel") {
@@ -263,7 +306,8 @@ module.exports = {
     const isOpener = ticket.opener_id === interaction.user.id;
 
     if (sub === "close") {
-      if (!canSupport && !isOpener) {
+      const isParticipant = await isThreadParticipant(interaction);
+      if (!canSupport && !isOpener && !isParticipant) {
         await interaction.reply({
           content: "티켓을 닫을 권한이 없어요.",
           ephemeral: true,

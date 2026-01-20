@@ -3,15 +3,21 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ChannelType,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
   type GuildMember,
   type Interaction,
   type GuildTextBasedChannel,
+  type ModalSubmitInteraction,
   type TextBasedChannel,
 } from "discord.js";
 import type { TicketRepo } from "../ports/ticketRepo";
 import type { GuildConfigRepoPort } from "../ports/guildConfigPort";
 
 export const TICKET_CREATE_BUTTON_ID = "ticket_create";
+export const TICKET_CREATE_MODAL_ID = "ticket_create_modal";
+export const TICKET_CREATE_MODAL_TITLE_INPUT_ID = "ticket_create_title";
 export const TICKET_CLOSE_BUTTON_ID = "ticket_close";
 export const TICKET_CLAIM_BUTTON_ID = "ticket_claim";
 export const TICKET_UNCLAIM_BUTTON_ID = "ticket_unclaim";
@@ -20,7 +26,62 @@ export class TicketService {
   constructor(
     private readonly ticketRepo: TicketRepo,
     private readonly configRepo: GuildConfigRepoPort
-  ) {}
+  ) { }
+
+  private sanitizeFilenamePart(input: string) {
+    const trimmed = String(input || "").trim();
+    const safe = trimmed
+      // keep ascii letters/numbers, dash/underscore/dot
+      .replace(/[^a-zA-Z0-9._-]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^\.+/, "")
+      .replace(/^[-_]+/, "")
+      .slice(0, 40);
+    return safe || "user";
+  }
+
+  private async resolveUserLabel(interaction: Interaction, userId: string) {
+    // Prefer a stable, readable label for filenames. Fall back to userId.
+    try {
+      const member = await interaction.guild?.members.fetch(userId).catch(() => null);
+      const name =
+        member?.displayName ||
+        member?.user?.username ||
+        member?.user?.tag ||
+        "";
+      if (name) return this.sanitizeFilenamePart(name);
+    } catch {
+      // ignore
+    }
+    try {
+      const user = await interaction.client.users.fetch(userId).catch(() => null);
+      const name = user?.username || user?.tag || "";
+      if (name) return this.sanitizeFilenamePart(name);
+    } catch {
+      // ignore
+    }
+    return this.sanitizeFilenamePart(userId);
+  }
+
+  private async notifyOpenerClaimed(interaction: Interaction, openerId: string, ticketId: number) {
+    // Best-effort DM notification (DMs can be disabled/blocked).
+    if (!interaction.inGuild()) return;
+    if (interaction.user.id === openerId) return;
+    const link = `https://discord.com/channels/${interaction.guildId}/${interaction.channelId}`;
+    try {
+      const user = await interaction.client.users.fetch(openerId).catch(() => null);
+      if (!user) return;
+      await user.send({
+        content: [
+          `티켓 #${ticketId}가 스태프에 의해 클레임되었습니다.`,
+          `클레임: <@${interaction.user.id}>`,
+          `티켓 링크: ${link}`,
+        ].join("\n"),
+      });
+    } catch {
+      // ignore
+    }
+  }
 
   buildTicketPanelPayload() {
     const button = new ButtonBuilder()
@@ -56,55 +117,41 @@ export class TicketService {
     this.ticketRepo.setClaim(ticketId, claimedById);
   }
 
-  async createTicketChannelTicket(interaction: Interaction, config: any) {
-    if (!interaction.isButton()) return;
+  private normalizeThreadTitle(input: string) {
+    const raw = String(input || "");
+    const trimmed = raw.trim().replace(/\s+/g, " ");
+    // Keep unicode (Korean etc.) but remove newlines/control chars.
+    const singleLine = trimmed.replace(/[\r\n\t]+/g, " ").trim();
+    return singleLine.slice(0, 80);
+  }
+
+  private async createTicketThread(
+    interaction: Interaction,
+    config: any,
+    title: string
+  ) {
     const panelChannelId = config?.ticket_channel_id;
     if (!panelChannelId) {
-      await interaction.reply({
-        content: "티켓 패널 채널이 설정되지 않았어요. 관리자에게 문의해주세요.",
-        ephemeral: true,
-      });
-      return;
+      throw new Error("ticket_channel_id not set");
     }
 
-    const hasSupportUsers = !!config?.ticket_support_user_ids?.length;
-    const hasSupportRoles = !!config?.ticket_support_role_ids?.length;
-    if (!hasSupportUsers && !hasSupportRoles) {
-      await interaction.reply({
-        content: "티켓 지원팀(역할/유저)이 설정되지 않았어요. 관리자에게 문의해주세요.",
-        ephemeral: true,
-      });
-      return;
-    }
-
-    const existing = this.ticketRepo.getLatestOpenByUser(
-      interaction.guild!.id,
-      interaction.user.id
-    );
-    if (existing?.channel_id) {
-      await interaction.reply({
-        content: `이미 열린 티켓이 있어요. <#${existing.channel_id}>`,
-        ephemeral: true,
-      });
-      return;
-    }
-
-    const panelChannel = await interaction.guild!.channels.fetch(panelChannelId).catch(() => null);
+    const panelChannel = await interaction.guild!.channels
+      .fetch(panelChannelId)
+      .catch(() => null);
     if (!panelChannel?.isTextBased() || !("threads" in panelChannel)) {
-      await interaction.reply({
-        content: "티켓 패널 채널을 찾을 수 없어요. 설정을 확인해주세요.",
-        ephemeral: true,
-      });
-      return;
+      throw new Error("panel channel not found or not thread-capable");
     }
 
-    const safeName = interaction.user.username
+    const safeUser = interaction.user.username
       .toLowerCase()
       .replace(/[^a-z0-9-]/g, "-")
-      .slice(0, 20);
-    const threadName = `ticket-${safeName || "user"}`;
+      .slice(0, 20) || "user";
+
+    const cleanTitle = this.normalizeThreadTitle(title);
+    const threadName = cleanTitle ? `ticket-${cleanTitle}` : `ticket-${safeUser}`;
+
     const thread = await panelChannel.threads.create({
-      name: threadName,
+      name: threadName.slice(0, 100),
       type: ChannelType.PrivateThread,
       autoArchiveDuration: 1440,
       reason: "Ticket created",
@@ -145,15 +192,156 @@ export class TicketService {
       content: [
         `티켓 #${ticketId}가 생성되었습니다.`,
         `생성자: <@${interaction.user.id}>`,
+        cleanTitle ? `제목: ${cleanTitle}` : null,
         "원하시는 문의 내용을 이 채널에 작성해주세요.",
-      ].join("\n"),
+      ]
+        .filter(Boolean)
+        .join("\n"),
       components: [row],
     });
 
-    await interaction.reply({
-      content: `티켓이 생성되었어요. <#${thread.id}>`,
-      ephemeral: true,
-    });
+    return { threadId: thread.id, ticketId };
+  }
+
+  private buildTicketCreateModal() {
+    const input = new TextInputBuilder()
+      .setCustomId(TICKET_CREATE_MODAL_TITLE_INPUT_ID)
+      .setLabel("티켓 제목")
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true)
+      .setMinLength(2)
+      .setMaxLength(80)
+      .setPlaceholder("예: 결제 오류 문의, 역할 지급 요청 등");
+
+    const row = new ActionRowBuilder<TextInputBuilder>().addComponents(input);
+    return new ModalBuilder()
+      .setCustomId(TICKET_CREATE_MODAL_ID)
+      .setTitle("티켓 생성")
+      .addComponents(row);
+  }
+
+  async createTicketChannelTicket(interaction: Interaction, config: any) {
+    if (!interaction.isButton()) return;
+    if (!interaction.inGuild()) {
+      try {
+        await interaction.reply({
+          content: "이 버튼은 서버에서만 사용할 수 있어요.",
+          ephemeral: true,
+        });
+      } catch {
+        // ignore
+      }
+      return;
+    }
+
+    const panelChannelId = config?.ticket_channel_id;
+    if (!panelChannelId) {
+      await interaction.reply({
+        content: "티켓 패널 채널이 설정되지 않았어요. 관리자에게 문의해주세요.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const hasSupportUsers = !!config?.ticket_support_user_ids?.length;
+    const hasSupportRoles = !!config?.ticket_support_role_ids?.length;
+    if (!hasSupportUsers && !hasSupportRoles) {
+      await interaction.reply({
+        content: "티켓 지원팀(역할/유저)이 설정되지 않았어요. 관리자에게 문의해주세요.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const existing = this.ticketRepo.getLatestOpenByUser(
+      interaction.guild!.id,
+      interaction.user.id
+    );
+    if (existing?.channel_id) {
+      await interaction.reply({
+        content: `이미 열린 티켓이 있어요. <#${existing.channel_id}>`,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    try {
+      await interaction.showModal(this.buildTicketCreateModal());
+    } catch (error) {
+      console.warn("[ticket-create] Failed:", error);
+      try {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({
+            content: "티켓 생성 창을 열 수 없어요. 잠시 후 다시 시도해주세요.",
+            ephemeral: true,
+          });
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  async handleTicketCreateModalSubmit(interaction: ModalSubmitInteraction, config: any) {
+    if (!interaction.inGuild()) {
+      await interaction.reply({
+        content: "이 작업은 서버에서만 사용할 수 있어요.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    // Acknowledge ASAP (thread creation can take time)
+    await interaction.deferReply({ ephemeral: true });
+
+    const panelChannelId = config?.ticket_channel_id;
+    if (!panelChannelId) {
+      await interaction.editReply({
+        content: "티켓 패널 채널이 설정되지 않았어요. 관리자에게 문의해주세요.",
+      });
+      return;
+    }
+    const hasSupportUsers = !!config?.ticket_support_user_ids?.length;
+    const hasSupportRoles = !!config?.ticket_support_role_ids?.length;
+    if (!hasSupportUsers && !hasSupportRoles) {
+      await interaction.editReply({
+        content: "티켓 지원팀(역할/유저)이 설정되지 않았어요. 관리자에게 문의해주세요.",
+      });
+      return;
+    }
+
+    // Double-check duplicates (user can submit multiple times)
+    const existing = this.ticketRepo.getLatestOpenByUser(
+      interaction.guild!.id,
+      interaction.user.id
+    );
+    if (existing?.channel_id) {
+      await interaction.editReply({
+        content: `이미 열린 티켓이 있어요. <#${existing.channel_id}>`,
+      });
+      return;
+    }
+
+    const title = interaction.fields.getTextInputValue(TICKET_CREATE_MODAL_TITLE_INPUT_ID);
+    const cleanTitle = this.normalizeThreadTitle(title);
+    if (!cleanTitle || cleanTitle.length < 2) {
+      await interaction.editReply({
+        content: "제목은 2자 이상 입력해주세요.",
+      });
+      return;
+    }
+
+    try {
+      const { threadId } = await this.createTicketThread(interaction, config, cleanTitle);
+      await interaction.editReply({
+        content: `티켓이 생성되었어요. <#${threadId}>`,
+      });
+    } catch (error) {
+      console.warn("[ticket-create-modal] Failed:", error);
+      await interaction.editReply({
+        content: "티켓 생성에 실패했어요. 권한/설정을 확인해주세요.",
+      });
+    }
   }
 
   private isTicketSupport(config: any, member: GuildMember | null) {
@@ -164,6 +352,17 @@ export class TicketService {
     return member.roles?.cache?.some((role) =>
       config.ticket_support_role_ids.includes(role.id)
     );
+  }
+
+  private async isTicketParticipant(interaction: Interaction) {
+    // In Private Thread tickets, being a thread member == "in the ticket".
+    if (!interaction.channel?.isThread?.()) return false;
+    try {
+      const me = await interaction.channel.members.fetch(interaction.user.id).catch(() => null);
+      return Boolean(me);
+    } catch {
+      return false;
+    }
   }
 
   private async buildTranscriptText(channel: TextBasedChannel) {
@@ -216,7 +415,8 @@ export class TicketService {
       const config = this.configRepo.getConfig(guildId);
       const canClose =
         ticket.opener_id === interaction.user.id ||
-        this.isTicketSupport(config, interaction.member as GuildMember);
+        this.isTicketSupport(config, interaction.member as GuildMember) ||
+        (await this.isTicketParticipant(interaction));
       if (!canClose) {
         await interaction.reply({
           content: "이 티켓을 닫을 권한이 없어요.",
@@ -250,12 +450,13 @@ export class TicketService {
           .catch(() => null);
         if (transcriptChannel?.isTextBased()) {
           const text = await this.buildTranscriptText(interaction.channel as TextBasedChannel);
+          const openerLabel = await this.resolveUserLabel(interaction, ticket.opener_id);
           await transcriptChannel.send({
-            content: `티켓 #${ticket.id} 트랜스크립트 (채널: <#${interaction.channel!.id}>)`,
+            content: `티켓 #${ticket.id} (생성자: <@${ticket.opener_id}> | ID: ${ticket.opener_id}) 트랜스크립트`,
             files: [
               {
                 attachment: Buffer.from(text, "utf8"),
-                name: `ticket-${ticket.id}.txt`,
+                name: `ticket-${ticket.id}-${openerLabel}.txt`,
               },
             ],
           });
@@ -321,6 +522,7 @@ export class TicketService {
 
       if (interaction.customId === TICKET_CLAIM_BUTTON_ID) {
         this.ticketRepo.setClaim(ticket.id, interaction.user.id);
+        await this.notifyOpenerClaimed(interaction, ticket.opener_id, ticket.id);
         const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
             .setCustomId(TICKET_UNCLAIM_BUTTON_ID)

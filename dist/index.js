@@ -124,6 +124,48 @@ client.on("interactionCreate", async (interaction) => {
         }
         return;
     }
+    if (interaction.isModalSubmit()) {
+        if (!interaction.inGuild()) {
+            try {
+                await interaction.reply({
+                    content: "이 작업은 서버에서만 사용할 수 있어요.",
+                    ephemeral: true,
+                });
+            }
+            catch {
+                // ignore
+            }
+            return;
+        }
+        if (interaction.customId === ticketService.TICKET_CREATE_MODAL_ID) {
+            const config = (0, guildConfigRepo_1.getConfig)(interaction.guild.id);
+            try {
+                await ticketService.handleTicketCreateModalSubmit(interaction, config);
+            }
+            catch (error) {
+                console.warn("[ticket-create-modal] Failed:", error);
+                try {
+                    if (interaction.replied || interaction.deferred) {
+                        await interaction.followUp({
+                            content: "티켓 생성 처리 중 오류가 발생했어요.",
+                            ephemeral: true,
+                        });
+                    }
+                    else {
+                        await interaction.reply({
+                            content: "티켓 생성 처리 중 오류가 발생했어요.",
+                            ephemeral: true,
+                        });
+                    }
+                }
+                catch {
+                    // ignore
+                }
+            }
+            return;
+        }
+        return;
+    }
     if (!interaction.isButton())
         return;
     if (!interaction.inGuild()) {
@@ -141,11 +183,16 @@ client.on("interactionCreate", async (interaction) => {
         catch (error) {
             console.warn("[ticket-create] Failed:", error);
             const message = "티켓 생성에 실패했어요. 권한/설정을 확인해주세요.";
-            if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({ content: message, ephemeral: true });
+            try {
+                if (interaction.replied || interaction.deferred) {
+                    await interaction.followUp({ content: message, ephemeral: true });
+                }
+                else {
+                    await interaction.reply({ content: message, ephemeral: true });
+                }
             }
-            else {
-                await interaction.reply({ content: message, ephemeral: true });
+            catch {
+                // ignore (interaction may be expired/unknown)
             }
         }
         return;

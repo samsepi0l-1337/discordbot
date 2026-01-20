@@ -204,6 +204,11 @@ Tickets Bot 스타일로 **서버 내 티켓 채널 생성/닫기/클레임/트�
 3) `/ticket add-support-role` 및/또는 `/ticket add-support-user`
 4) 패널 게시 채널에서 `/ticket panel`
 
+### `/ticket show`
+
+- **인수**: 없음
+- **결과**: 현재 서버의 티켓 설정(지원팀 역할/유저, 트랜스크립트 채널 등)을 요약해서 보여줍니다.
+
 ### `/ticket panel`
 
 - **인수**: 없음
