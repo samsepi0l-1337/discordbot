@@ -22,9 +22,14 @@ class OnboardingService {
         }
         const timedRoles = this.timedRoleRepo.list(input.guildId);
         for (const rule of timedRoles) {
+            // Safety/compat:
+            // - We store delays in ms, but older data may have been stored in seconds (e.g. 5 instead of 5000).
+            const raw = Number(rule.delay_ms);
+            const baseDelayMs = Number.isFinite(raw) ? Math.max(0, raw) : 0;
+            const delayMs = baseDelayMs > 0 && baseDelayMs < 1000 ? baseDelayMs * 1000 : baseDelayMs;
             this.schedule(() => {
                 void this.roleManager.assignRole(input.member, rule.role_id, "timed-role");
-            }, rule.delay_ms);
+            }, delayMs);
         }
     }
 }
