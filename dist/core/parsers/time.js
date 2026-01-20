@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseTimeToMs = parseTimeToMs;
 function parseTimeToMs(input) {
     const trimmed = input.trim();
-    const match = trimmed.match(/^(\d+)\s*(d|day|days|h|hour|hours|m|minute|minutes)$/i);
+    const match = trimmed.match(/^(\d+)\s*(d|day|days|h|hour|hours|m|minute|minutes|s|sec|secs|second|seconds)$/i);
     if (!match)
         return null;
     const value = Number(match[1]);
@@ -16,5 +16,7 @@ function parseTimeToMs(input) {
         return value * 60 * 60 * 1000;
     if (unit.startsWith("m"))
         return value * 60 * 1000;
+    if (unit.startsWith("s"))
+        return value * 1000;
     return null;
 }

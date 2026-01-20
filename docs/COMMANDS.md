@@ -167,7 +167,7 @@ Zira 스타일로 “활성 메시지(active message)”를 선택한 뒤 규칙
 
 ### `/rr timed ...`
 
-- `/rr timed add role:<Role> time:<10m|2h|1d>`
+- `/rr timed add role:<Role> time:<10s|10m|2h|1d>`
 - **내부 로직**:
     1. `10m`(10분), `2h`(2시간) 등의 문자열을 밀리초(ms) 단위로 파싱합니다.
     2. 유저가 입장할 때 `setTimeout`을 통해 지정된 시간 뒤 역할 부여 작업을 예약합니다.

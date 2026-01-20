@@ -12,6 +12,16 @@ const mentions_1 = require("../core/formatters/mentions");
 const mentions_2 = require("../core/formatters/mentions");
 const emoji_1 = require("../core/parsers/emoji");
 const time_1 = require("../core/parsers/time");
+function formatDelayMs(ms) {
+    const safe = Math.max(0, Math.floor(ms));
+    if (safe < 60000)
+        return `${Math.round(safe / 1000)}초`;
+    if (safe < 60 * 60000)
+        return `${Math.round(safe / 60000)}분`;
+    if (safe < 24 * 60 * 60000)
+        return `${Math.round(safe / (60 * 60000))}시간`;
+    return `${Math.round(safe / (24 * 60 * 60000))}일`;
+}
 async function fetchActiveMessage(interaction) {
     const guild = interaction.guild;
     let messageId = interaction.options?.getString?.("message_id");
@@ -153,7 +163,7 @@ module.exports = {
         .addRoleOption((option) => option.setName("role").setDescription("역할").setRequired(true))
         .addStringOption((option) => option
         .setName("time")
-        .setDescription("시간(예: 10m, 2h, 1d)")
+        .setDescription("시간(예: 10s, 10m, 2h, 1d)")
         .setRequired(true)))
         .addSubcommand((sub) => sub
         .setName("delete")
@@ -482,7 +492,7 @@ module.exports = {
                 const delayMs = (0, time_1.parseTimeToMs)(time);
                 if (!delayMs) {
                     await interaction.reply({
-                        content: "시간 형식이 올바르지 않아요. 예: 10m, 2h, 1d",
+                        content: "시간 형식이 올바르지 않아요. 예: 10s, 10m, 2h, 1d",
                         ephemeral: true,
                     });
                     return;
@@ -512,7 +522,7 @@ module.exports = {
                     });
                     return;
                 }
-                const lines = items.map((item) => `- ${(0, mentions_1.formatRole)(item.role_id)}: ${Math.round(item.delay_ms / 60000)}분`);
+                const lines = items.map((item) => `- ${(0, mentions_1.formatRole)(item.role_id)}: ${formatDelayMs(item.delay_ms)}`);
                 await interaction.reply({
                     content: `timed role 목록\n${lines.join("\n")}`,
                     ephemeral: true,

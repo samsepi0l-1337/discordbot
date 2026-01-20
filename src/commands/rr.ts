@@ -39,6 +39,14 @@ type RrRule = {
   toggle_group?: string | null;
 };
 
+function formatDelayMs(ms: number): string {
+  const safe = Math.max(0, Math.floor(ms));
+  if (safe < 60_000) return `${Math.round(safe / 1000)}초`;
+  if (safe < 60 * 60_000) return `${Math.round(safe / 60_000)}분`;
+  if (safe < 24 * 60 * 60_000) return `${Math.round(safe / (60 * 60_000))}시간`;
+  return `${Math.round(safe / (24 * 60 * 60_000))}일`;
+}
+
 async function fetchActiveMessage(interaction: ChatInputCommandInteraction | MessageContextMenuCommandInteraction) {
   const guild = interaction.guild!;
   let messageId = (interaction as any).options?.getString?.("message_id");
@@ -270,7 +278,7 @@ module.exports = {
             .addStringOption((option) =>
               option
                 .setName("time")
-                .setDescription("시간(예: 10m, 2h, 1d)")
+                .setDescription("시간(예: 10s, 10m, 2h, 1d)")
                 .setRequired(true)
             )
         )
@@ -663,7 +671,7 @@ module.exports = {
         const delayMs = parseTimeToMs(time);
         if (!delayMs) {
           await interaction.reply({
-            content: "시간 형식이 올바르지 않아요. 예: 10m, 2h, 1d",
+            content: "시간 형식이 올바르지 않아요. 예: 10s, 10m, 2h, 1d",
             ephemeral: true,
           });
           return;
@@ -695,7 +703,7 @@ module.exports = {
         }
         const lines = items.map(
           (item: { role_id: string; delay_ms: number; }) =>
-            `- ${formatRole(item.role_id)}: ${Math.round(item.delay_ms / 60000)}분`
+            `- ${formatRole(item.role_id)}: ${formatDelayMs(item.delay_ms)}`
         );
         await interaction.reply({
           content: `timed role 목록\n${lines.join("\n")}`,
