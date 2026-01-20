@@ -20,7 +20,8 @@
 - **실행 로직**:
     1. `intro_channel_id`, `intro_role_id`, `intro_role_mode`를 저장합니다.
     2. `messageCreate` 이벤트가 발생할 때마다 메시지가 작성된 채널 ID를 확인합니다.
-    3. 작성 채널이 설정된 채널과 일치하면 `mode`에 따라 역할을 **부여(add)**하거나 **제거(delete)**합니다.
+    3. 작성 채널이 설정된 채널과 일치하면 메시지에 `✅` 리액션을 추가합니다.
+    4. `mode`에 따라 역할을 **부여(add)**하거나 **제거(delete)**합니다.
 - **결과**: 특정 채널에 메시지를 남긴 유저에게 역할을 자동으로 부여/제거합니다.
 
 ### `/config allow-command-role` / `allow-command-user`

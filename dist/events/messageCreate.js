@@ -33,6 +33,9 @@ module.exports = {
             guildId: message.guild.id,
             channelId: message.channel.id,
             member,
+            react: async (emoji) => {
+                await message.react(emoji);
+            },
         });
     },
 };
