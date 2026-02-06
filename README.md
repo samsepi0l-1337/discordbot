@@ -46,6 +46,18 @@ Automates onboarding roles, reaction roles, and provides a robust ticket system 
 
 - SQLite database for persistent configuration and ticket sessions.
 
+## Docker
+
+The bot can run as a Docker image. The image includes the `data/` directory from build time so DB state is preserved in the image; you can also use a volume for persistence across container recreations.
+
+**Before building:** Ensure the project root has a `data` directory (e.g. `mkdir data`). To embed an existing DB in the image, put `data/bot.db` (and any WAL/SHM files if present) in `data/` before building.
+
+- Build: `docker build -t discordbot .`
+- Run with env vars:  
+  `docker run --rm -e DISCORD_TOKEN=... -e CLIENT_ID=... -v $(pwd)/data:/app/data discordbot`
+- With docker-compose: `docker compose up -d`. Uses `env_file: .env` and mounts `./data:/app/data` so config and DB are kept on the host. The image still contains the `data/` snapshot from build time; when you mount a volume, the host `./data` takes precedence.
+- To use a custom DB path, set `BOT_DB_PATH` (or `DISCORD_BOT_DB_PATH` / `DB_PATH`) and mount that path (or its parent) as a volume so data persists.
+
 ## Troubleshooting
 
 - If roles are not assigned, check if the bot role is **above** the roles it assigns in the Server Settings.

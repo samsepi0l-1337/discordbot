@@ -1,0 +1,29 @@
+# Dependencies and build outputs (rebuilt in image)
+node_modules
+dist
+.npm-cache
+.tmp
+
+# Secrets and env (must be provided at runtime)
+.env
+.env.*
+
+# Version control
+.git
+.gitignore
+
+# Tests (not needed in production image)
+__tests__
+*.test.ts
+*.test.js
+jest.config.cjs
+
+# Logs and caches
+*.log
+.npm-cache
+
+# Docs (optional; keep image smaller)
+README.md
+docs
+
+# data/ is intentionally NOT ignored so it can be COPY'd into the image for DB preservation
