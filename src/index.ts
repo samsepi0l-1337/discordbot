@@ -5,6 +5,7 @@ import {
   Client,
   Collection,
   GatewayIntentBits,
+  MessageFlags,
   Partials,
   REST,
   Routes,
@@ -131,9 +132,9 @@ client.on("interactionCreate", async (interaction: Interaction) => {
       console.error("Command error:", error);
       const message = "명령 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.";
       if ((interaction as any).replied || (interaction as any).deferred) {
-        await (interaction as any).followUp({ content: message, ephemeral: true });
+        await (interaction as any).followUp({ content: message, flags: MessageFlags.Ephemeral });
       } else {
-        await (interaction as any).reply({ content: message, ephemeral: true });
+        await (interaction as any).reply({ content: message, flags: MessageFlags.Ephemeral });
       }
     }
     return;
@@ -144,7 +145,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
       try {
         await interaction.reply({
           content: "이 작업은 서버에서만 사용할 수 있어요.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       } catch {
         // ignore
@@ -162,12 +163,12 @@ client.on("interactionCreate", async (interaction: Interaction) => {
           if (interaction.replied || interaction.deferred) {
             await interaction.followUp({
               content: "티켓 생성 처리 중 오류가 발생했어요.",
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           } else {
             await interaction.reply({
               content: "티켓 생성 처리 중 오류가 발생했어요.",
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           }
         } catch {
@@ -185,7 +186,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
   if (!interaction.inGuild()) {
     await interaction.reply({
       content: "이 버튼은 서버에서만 사용할 수 있어요.",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
     return;
   }
@@ -199,9 +200,9 @@ client.on("interactionCreate", async (interaction: Interaction) => {
       const message = "티켓 생성에 실패했어요. 권한/설정을 확인해주세요.";
       try {
         if (interaction.replied || interaction.deferred) {
-          await interaction.followUp({ content: message, ephemeral: true });
+          await interaction.followUp({ content: message, flags: MessageFlags.Ephemeral });
         } else {
-          await interaction.reply({ content: message, ephemeral: true });
+          await interaction.reply({ content: message, flags: MessageFlags.Ephemeral });
         }
       } catch {
         // ignore (interaction may be expired/unknown)

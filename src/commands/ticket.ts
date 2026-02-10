@@ -2,6 +2,7 @@ import {
   SlashCommandBuilder,
   PermissionsBitField,
   ChannelType,
+  MessageFlags,
   type ChatInputCommandInteraction,
 } from "discord.js";
 import {
@@ -157,7 +158,7 @@ module.exports = {
     if (!interaction.inGuild()) {
       await interaction.reply({
         content: "이 명령은 서버에서만 사용할 수 있어요.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -191,7 +192,7 @@ module.exports = {
       if (!canManage) {
         await interaction.reply({
           content: "이 작업은 관리자 또는 허용된 권한이 필요해요.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -209,7 +210,7 @@ module.exports = {
       ];
       await interaction.reply({
         content: `현재 티켓 설정\n${lines.join("\n")}`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -219,7 +220,7 @@ module.exports = {
       if (!channel || !channel.isTextBased() || channel.isDMBased?.()) {
         await interaction.reply({
           content: "텍스트 채널에서만 사용할 수 있어요.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -228,7 +229,7 @@ module.exports = {
       setTicketPanelMessage(guildId, panel.id);
       await interaction.reply({
         content: "티켓 패널을 게시했어요.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -238,7 +239,7 @@ module.exports = {
       setTicketCategory(guildId, category.id);
       await interaction.reply({
         content: `티켓 카테고리를 ${category}로 설정했어요.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -248,7 +249,7 @@ module.exports = {
       setTicketTranscriptChannel(guildId, channel.id);
       await interaction.reply({
         content: `트랜스크립트 채널을 ${channel}로 설정했어요.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -258,7 +259,7 @@ module.exports = {
       addTicketSupportRole(guildId, role.id);
       await interaction.reply({
         content: `티켓 지원 역할에 ${formatRole(role.id)}를 추가했어요.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -268,7 +269,7 @@ module.exports = {
       removeTicketSupportRole(guildId, role.id);
       await interaction.reply({
         content: `티켓 지원 역할에서 ${formatRole(role.id)}를 제거했어요.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -278,7 +279,7 @@ module.exports = {
       addTicketRecipient(guildId, user.id);
       await interaction.reply({
         content: `티켓 지원 유저에 ${formatUser(user.id)}를 추가했어요.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -288,7 +289,7 @@ module.exports = {
       removeTicketRecipient(guildId, user.id);
       await interaction.reply({
         content: `티켓 지원 유저에서 ${formatUser(user.id)}를 제거했어요.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -297,7 +298,7 @@ module.exports = {
     if (!ticket) {
       await interaction.reply({
         content: "이 채널은 티켓 채널이 아니에요.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -310,7 +311,7 @@ module.exports = {
       if (!canSupport && !isOpener && !isParticipant) {
         await interaction.reply({
           content: "티켓을 닫을 권한이 없어요.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -319,7 +320,7 @@ module.exports = {
       ticketService.touchTicket(ticket.id);
       await interaction.reply({
         content: "티켓을 닫았어요. (버튼 닫기와 동일하게 처리됩니다)",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -328,14 +329,13 @@ module.exports = {
       if (!canSupport) {
         await interaction.reply({
           content: "지원팀만 클레임할 수 있어요.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
       ticketService.setTicketClaim(ticket.id, interaction.user.id);
       await interaction.reply({
         content: `이 티켓을 ${formatUser(interaction.user.id)}가 클레임했어요.`,
-        ephemeral: false,
       });
       return;
     }
@@ -344,14 +344,13 @@ module.exports = {
       if (!canSupport) {
         await interaction.reply({
           content: "지원팀만 언클레임할 수 있어요.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
       ticketService.setTicketClaim(ticket.id, null);
       await interaction.reply({
         content: "클레임이 해제되었어요.",
-        ephemeral: false,
       });
       return;
     }
@@ -360,7 +359,7 @@ module.exports = {
       if (!canSupport) {
         await interaction.reply({
           content: "지원팀만 transfer를 사용할 수 있어요.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -368,7 +367,6 @@ module.exports = {
       ticketService.setTicketClaim(ticket.id, user.id);
       await interaction.reply({
         content: `클레임을 ${formatUser(user.id)}에게 전달했어요.`,
-        ephemeral: false,
       });
       return;
     }
@@ -377,7 +375,7 @@ module.exports = {
       if (!canSupport && !isOpener) {
         await interaction.reply({
           content: "이 작업을 할 권한이 없어요.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -399,7 +397,7 @@ module.exports = {
       } catch {
         await interaction.reply({
           content: "권한 변경에 실패했어요.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -408,7 +406,6 @@ module.exports = {
           sub === "add"
             ? `티켓에 ${formatUser(user.id)}를 추가했어요.`
             : `티켓에서 ${formatUser(user.id)}를 제거했어요.`,
-        ephemeral: false,
       });
     }
   },
