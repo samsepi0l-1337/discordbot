@@ -116,10 +116,10 @@ client.on("interactionCreate", async (interaction) => {
             console.error("Command error:", error);
             const message = "명령 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.";
             if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({ content: message, ephemeral: true });
+                await interaction.followUp({ content: message, flags: discord_js_1.MessageFlags.Ephemeral });
             }
             else {
-                await interaction.reply({ content: message, ephemeral: true });
+                await interaction.reply({ content: message, flags: discord_js_1.MessageFlags.Ephemeral });
             }
         }
         return;
@@ -129,7 +129,7 @@ client.on("interactionCreate", async (interaction) => {
             try {
                 await interaction.reply({
                     content: "이 작업은 서버에서만 사용할 수 있어요.",
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
             }
             catch {
@@ -148,13 +148,13 @@ client.on("interactionCreate", async (interaction) => {
                     if (interaction.replied || interaction.deferred) {
                         await interaction.followUp({
                             content: "티켓 생성 처리 중 오류가 발생했어요.",
-                            ephemeral: true,
+                            flags: discord_js_1.MessageFlags.Ephemeral,
                         });
                     }
                     else {
                         await interaction.reply({
                             content: "티켓 생성 처리 중 오류가 발생했어요.",
-                            ephemeral: true,
+                            flags: discord_js_1.MessageFlags.Ephemeral,
                         });
                     }
                 }
@@ -171,7 +171,7 @@ client.on("interactionCreate", async (interaction) => {
     if (!interaction.inGuild()) {
         await interaction.reply({
             content: "이 버튼은 서버에서만 사용할 수 있어요.",
-            ephemeral: true,
+            flags: discord_js_1.MessageFlags.Ephemeral,
         });
         return;
     }
@@ -185,10 +185,10 @@ client.on("interactionCreate", async (interaction) => {
             const message = "티켓 생성에 실패했어요. 권한/설정을 확인해주세요.";
             try {
                 if (interaction.replied || interaction.deferred) {
-                    await interaction.followUp({ content: message, ephemeral: true });
+                    await interaction.followUp({ content: message, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
                 else {
-                    await interaction.reply({ content: message, ephemeral: true });
+                    await interaction.reply({ content: message, flags: discord_js_1.MessageFlags.Ephemeral });
                 }
             }
             catch {
@@ -206,7 +206,7 @@ client.on("interactionCreate", async (interaction) => {
         return;
     }
 });
-client.once("ready", async () => {
+client.once("clientReady", async () => {
     console.log(`Logged in as ${client.user?.tag}`);
     await registerCommandsOnStartup();
     startTicketCleanup();

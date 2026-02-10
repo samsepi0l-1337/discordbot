@@ -65,7 +65,7 @@ module.exports = {
         if (!interaction.inGuild()) {
             await interaction.reply({
                 content: "이 명령은 서버에서만 사용할 수 있어요.",
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -77,7 +77,7 @@ module.exports = {
         if (!allowed) {
             await interaction.reply({
                 content: "이 명령을 사용하려면 서버 관리 권한 또는 허용된 역할이 필요해요.",
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -89,7 +89,7 @@ module.exports = {
             (0, guildConfigRepo_1.setIntro)(guildId, channel.id, role.id, mode || "add");
             await interaction.reply({
                 content: `자기소개 채널 ${(0, mentions_1.formatChannel)(channel.id)}, 역할 ${(0, mentions_1.formatRole)(role.id)}, mode=${mode || "add"} 로 설정했어요.`,
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -97,7 +97,7 @@ module.exports = {
             if (!hasAdmin) {
                 await interaction.reply({
                     content: "허용 역할 설정은 서버 관리 권한이 필요해요.",
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -105,7 +105,7 @@ module.exports = {
             (0, guildConfigRepo_1.addCommandRole)(guildId, role.id);
             await interaction.reply({
                 content: `커맨드 허용 역할에 ${(0, mentions_1.formatRole)(role.id)}를 추가했어요.`,
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -113,7 +113,7 @@ module.exports = {
             if (!hasAdmin) {
                 await interaction.reply({
                     content: "허용 유저 설정은 서버 관리 권한이 필요해요.",
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -121,7 +121,7 @@ module.exports = {
             (0, guildConfigRepo_1.addCommandUser)(guildId, user.id);
             await interaction.reply({
                 content: `커맨드 허용 유저에 ${(0, mentions_1.formatUser)(user.id)}를 추가했어요.`,
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -129,7 +129,7 @@ module.exports = {
             if (!hasAdmin) {
                 await interaction.reply({
                     content: "허용 유저 설정은 서버 관리 권한이 필요해요.",
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -137,7 +137,7 @@ module.exports = {
             (0, guildConfigRepo_1.removeCommandUser)(guildId, user.id);
             await interaction.reply({
                 content: `커맨드 허용 유저에서 ${(0, mentions_1.formatUser)(user.id)}를 제거했어요.`,
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -145,7 +145,7 @@ module.exports = {
             if (!hasAdmin) {
                 await interaction.reply({
                     content: "허용 역할 설정은 서버 관리 권한이 필요해요.",
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -153,7 +153,7 @@ module.exports = {
             (0, guildConfigRepo_1.removeCommandRole)(guildId, role.id);
             await interaction.reply({
                 content: `커맨드 허용 역할에서 ${(0, mentions_1.formatRole)(role.id)}를 제거했어요.`,
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -162,7 +162,7 @@ module.exports = {
             if (!current) {
                 await interaction.reply({
                     content: "현재 설정이 없습니다. 먼저 /config 명령으로 설정해주세요.",
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -175,7 +175,7 @@ module.exports = {
             ];
             await interaction.reply({
                 content: `현재 설정\n${lines.join("\n")}`,
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -185,13 +185,13 @@ module.exports = {
             if (!ok) {
                 await interaction.reply({
                     content: "알 수 없는 설정 항목이에요.",
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
             await interaction.reply({
                 content: `설정 항목 ${field} 을(를) 초기화했어요.`,
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -199,7 +199,7 @@ module.exports = {
             (0, guildConfigRepo_1.resetConfig)(guildId);
             await interaction.reply({
                 content: "모든 설정을 초기화했어요.",
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
         }
     },

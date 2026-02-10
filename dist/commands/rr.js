@@ -204,7 +204,7 @@ module.exports = {
         if (!interaction.inGuild()) {
             await interaction.reply({
                 content: "이 명령은 서버에서만 사용할 수 있어요.",
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -216,7 +216,7 @@ module.exports = {
         if (!allowed) {
             await interaction.reply({
                 content: "이 명령을 사용하려면 서버 관리 권한 또는 허용된 역할/유저가 필요해요.",
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -226,7 +226,7 @@ module.exports = {
             (0, rrRepo_1.setActiveMessage)(guildId, message.channel.id, message.id);
             await interaction.reply({
                 content: `활성 메시지를 설정했어요. 메시지 ID: ${message.id}\n채널: <#${message.channel.id}>`,
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -239,7 +239,7 @@ module.exports = {
             (0, rrRepo_1.setActiveMessage)(guildId, channel.id, "");
             await interaction.reply({
                 content: `활성 채널을 ${(0, mentions_1.formatChannel)(channel.id)}로 설정했어요. 이제 /rr message로 메시지를 지정해주세요.`,
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -253,7 +253,7 @@ module.exports = {
             if (!targetMessageId) {
                 await interaction.reply({
                     content: "메시지 ID를 입력하거나, 대상 메시지에 답글(Reply)을 달고 명령어를 실행해주세요.",
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -263,7 +263,7 @@ module.exports = {
             if (!channel?.isTextBased()) {
                 await interaction.reply({
                     content: "활성 채널을 찾을 수 없어요. /rr channel로 먼저 설정해주세요.",
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -271,14 +271,14 @@ module.exports = {
             if (!message) {
                 await interaction.reply({
                     content: "메시지를 찾지 못했어요. ID를 확인하거나 해당 채널이 맞는지 확인해주세요.",
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
             (0, rrRepo_1.setActiveMessage)(guildId, channel.id, message.id);
             await interaction.reply({
                 content: `활성 메시지를 설정했어요. 메시지 ID: ${message.id}`,
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -287,7 +287,7 @@ module.exports = {
             if (!active) {
                 await interaction.reply({
                     content: "활성 메시지가 없어요. /rr channel + /rr message로 설정해주세요.",
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -297,7 +297,7 @@ module.exports = {
             if (!parsed) {
                 await interaction.reply({
                     content: "이모지 형식이 올바르지 않아요.",
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -308,7 +308,7 @@ module.exports = {
                 if (hasOther) {
                     await interaction.reply({
                         content: "once 타입은 다른 리액션 타입과 함께 사용할 수 없어요.",
-                        ephemeral: true,
+                        flags: discord_js_1.MessageFlags.Ephemeral,
                     });
                     return;
                 }
@@ -318,7 +318,7 @@ module.exports = {
                 if (hasOnce) {
                     await interaction.reply({
                         content: "once 타입이 설정된 메시지에는 다른 타입을 추가할 수 없어요.",
-                        ephemeral: true,
+                        flags: discord_js_1.MessageFlags.Ephemeral,
                     });
                     return;
                 }
@@ -340,7 +340,7 @@ module.exports = {
             }
             await interaction.reply({
                 content: `리액션 역할을 추가했어요. ${(0, mentions_2.formatEmojiKey)(parsed.key)} → ${(0, mentions_1.formatRole)(role.id)}`,
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -350,7 +350,7 @@ module.exports = {
             if (!rules.length) {
                 await interaction.reply({
                     content: "등록된 리액션 역할이 없어요.",
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -367,7 +367,7 @@ module.exports = {
             });
             await interaction.reply({
                 content: `리액션 역할 목록\n${lines.join("\n")}`,
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -385,7 +385,7 @@ module.exports = {
                 else {
                     await interaction.reply({
                         content: "메시지 ID를 입력하거나, 대상 메시지에 답글(Reply)을 달아주세요.",
-                        ephemeral: true,
+                        flags: discord_js_1.MessageFlags.Ephemeral,
                     });
                     return;
                 }
@@ -394,7 +394,7 @@ module.exports = {
                 const removed = (0, rrRepo_1.deleteRulesByMessage)(guildId, targetMessageId);
                 await interaction.reply({
                     content: `삭제 완료: ${removed}개 (메시지 ID: ${targetMessageId})`,
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -403,7 +403,7 @@ module.exports = {
                 const removed = (0, rrRepo_1.deleteRulesByRole)(guildId, targetMessageId, role.id);
                 await interaction.reply({
                     content: `삭제 완료: ${removed}개 (메시지 ID: ${targetMessageId})`,
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -413,14 +413,14 @@ module.exports = {
                 if (!parsed) {
                     await interaction.reply({
                         content: "이모지 형식이 올바르지 않아요.",
-                        ephemeral: true,
+                        flags: discord_js_1.MessageFlags.Ephemeral,
                     });
                     return;
                 }
                 const removed = (0, rrRepo_1.deleteRulesByEmoji)(guildId, targetMessageId, parsed.key);
                 await interaction.reply({
                     content: `삭제 완료: ${removed}개 (메시지 ID: ${targetMessageId})`,
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -434,7 +434,7 @@ module.exports = {
                     const removed = (0, rrRepo_1.deleteRulesByMessage)(guildId, targetMessageId);
                     await interaction.reply({
                         content: `메시지를 찾지 못해 규칙을 삭제했어요. 삭제 수: ${removed}`,
-                        ephemeral: true,
+                        flags: discord_js_1.MessageFlags.Ephemeral,
                     });
                     return;
                 }
@@ -442,7 +442,7 @@ module.exports = {
                 const removed = (0, rrRepo_1.deleteRulesMissingRoles)(guildId, targetMessageId, roleIds);
                 await interaction.reply({
                     content: `삭제된 역할 참조 정리: ${removed}개`,
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -454,7 +454,7 @@ module.exports = {
                 (0, autoroleRepo_1.addAutorole)(guildId, target, role.id);
                 await interaction.reply({
                     content: `autorole을 추가했어요. 대상: ${target}, 역할: ${(0, mentions_1.formatRole)(role.id)}`,
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -464,7 +464,7 @@ module.exports = {
                 const removed = (0, autoroleRepo_1.removeAutorole)(guildId, target, role.id);
                 await interaction.reply({
                     content: `삭제 완료: ${removed}개`,
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -473,14 +473,14 @@ module.exports = {
                 if (!items.length) {
                     await interaction.reply({
                         content: "autorole 설정이 없어요.",
-                        ephemeral: true,
+                        flags: discord_js_1.MessageFlags.Ephemeral,
                     });
                     return;
                 }
                 const lines = items.map((item) => `- ${item.target}: ${(0, mentions_1.formatRole)(item.role_id)}`);
                 await interaction.reply({
                     content: `autorole 목록\n${lines.join("\n")}`,
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -493,14 +493,14 @@ module.exports = {
                 if (!delayMs) {
                     await interaction.reply({
                         content: "시간 형식이 올바르지 않아요. 예: 10s, 10m, 2h, 1d",
-                        ephemeral: true,
+                        flags: discord_js_1.MessageFlags.Ephemeral,
                     });
                     return;
                 }
                 (0, timedRoleRepo_1.addTimedRole)(guildId, role.id, delayMs);
                 await interaction.reply({
                     content: `timed role을 추가했어요. ${(0, mentions_1.formatRole)(role.id)} (${time})`,
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -509,7 +509,7 @@ module.exports = {
                 const removed = (0, timedRoleRepo_1.removeTimedRole)(guildId, role.id);
                 await interaction.reply({
                     content: `삭제 완료: ${removed}개`,
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -518,14 +518,14 @@ module.exports = {
                 if (!items.length) {
                     await interaction.reply({
                         content: "timed role 설정이 없어요.",
-                        ephemeral: true,
+                        flags: discord_js_1.MessageFlags.Ephemeral,
                     });
                     return;
                 }
                 const lines = items.map((item) => `- ${(0, mentions_1.formatRole)(item.role_id)}: ${formatDelayMs(item.delay_ms)}`);
                 await interaction.reply({
                     content: `timed role 목록\n${lines.join("\n")}`,
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -537,7 +537,7 @@ module.exports = {
                 (0, voiceRoleRepo_1.addVoiceRole)(guildId, channel.id, role.id);
                 await interaction.reply({
                     content: `음성 채널 역할을 추가했어요. ${(0, mentions_1.formatChannel)(channel.id)} → ${(0, mentions_1.formatRole)(role.id)}`,
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -547,7 +547,7 @@ module.exports = {
                 const removed = (0, voiceRoleRepo_1.removeVoiceRole)(guildId, channel.id, role.id);
                 await interaction.reply({
                     content: `삭제 완료: ${removed}개`,
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -556,14 +556,14 @@ module.exports = {
                 if (!items.length) {
                     await interaction.reply({
                         content: "음성 채널 역할 설정이 없어요.",
-                        ephemeral: true,
+                        flags: discord_js_1.MessageFlags.Ephemeral,
                     });
                     return;
                 }
                 const lines = items.map((item) => `- <#${item.voice_channel_id}>: ${(0, mentions_1.formatRole)(item.role_id)}`);
                 await interaction.reply({
                     content: `음성 채널 역할 목록\n${lines.join("\n")}`,
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -573,13 +573,13 @@ module.exports = {
             (0, rrSettingsRepo_1.setDmEnabled)(guildId, state === "on");
             await interaction.reply({
                 content: `DM 알림을 ${state === "on" ? "켜짐" : "꺼짐"}으로 설정했어요.`,
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
         await interaction.reply({
             content: "알 수 없는 명령이에요.",
-            ephemeral: true,
+            flags: discord_js_1.MessageFlags.Ephemeral,
         });
     },
 };

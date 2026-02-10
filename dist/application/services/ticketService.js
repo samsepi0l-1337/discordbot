@@ -186,7 +186,7 @@ class TicketService {
             try {
                 await interaction.reply({
                     content: "이 버튼은 서버에서만 사용할 수 있어요.",
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
             }
             catch {
@@ -198,7 +198,7 @@ class TicketService {
         if (!panelChannelId) {
             await interaction.reply({
                 content: "티켓 패널 채널이 설정되지 않았어요. 관리자에게 문의해주세요.",
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -207,7 +207,7 @@ class TicketService {
         if (!hasSupportUsers && !hasSupportRoles) {
             await interaction.reply({
                 content: "티켓 지원팀(역할/유저)이 설정되지 않았어요. 관리자에게 문의해주세요.",
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -215,7 +215,7 @@ class TicketService {
         if (existing?.channel_id) {
             await interaction.reply({
                 content: `이미 열린 티켓이 있어요. <#${existing.channel_id}>`,
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
@@ -228,7 +228,7 @@ class TicketService {
                 if (!interaction.replied && !interaction.deferred) {
                     await interaction.reply({
                         content: "티켓 생성 창을 열 수 없어요. 잠시 후 다시 시도해주세요.",
-                        ephemeral: true,
+                        flags: discord_js_1.MessageFlags.Ephemeral,
                     });
                 }
             }
@@ -241,12 +241,12 @@ class TicketService {
         if (!interaction.inGuild()) {
             await interaction.reply({
                 content: "이 작업은 서버에서만 사용할 수 있어요.",
-                ephemeral: true,
+                flags: discord_js_1.MessageFlags.Ephemeral,
             });
             return;
         }
         // Acknowledge ASAP (thread creation can take time)
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: discord_js_1.MessageFlags.Ephemeral });
         const panelChannelId = config?.ticket_channel_id;
         if (!panelChannelId) {
             await interaction.editReply({
@@ -352,7 +352,7 @@ class TicketService {
             if (!ticket) {
                 await interaction.reply({
                     content: "티켓을 찾을 수 없어요.",
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -363,11 +363,11 @@ class TicketService {
             if (!canClose) {
                 await interaction.reply({
                     content: "이 티켓을 닫을 권한이 없어요.",
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
-            await interaction.deferReply({ ephemeral: true });
+            await interaction.deferReply({ flags: discord_js_1.MessageFlags.Ephemeral });
             this.ticketRepo.close(ticket.id, interaction.user.id, "closed-by-button");
             this.ticketRepo.touch(ticket.id);
             // Update the control message (the one with buttons) to show closed state
@@ -421,13 +421,13 @@ class TicketService {
                 if (interaction.deferred || interaction.replied) {
                     await interaction.followUp({
                         content: "티켓 닫기 처리 중 오류가 발생했어요.",
-                        ephemeral: true,
+                        flags: discord_js_1.MessageFlags.Ephemeral,
                     });
                 }
                 else {
                     await interaction.reply({
                         content: "티켓 닫기 처리 중 오류가 발생했어요.",
-                        ephemeral: true,
+                        flags: discord_js_1.MessageFlags.Ephemeral,
                     });
                 }
             }
@@ -446,7 +446,7 @@ class TicketService {
             if (!ticket) {
                 await interaction.reply({
                     content: "티켓을 찾을 수 없어요.",
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
@@ -454,10 +454,11 @@ class TicketService {
             if (!this.isTicketSupport(config, interaction.member)) {
                 await interaction.reply({
                     content: "지원팀만 클레임할 수 있어요.",
-                    ephemeral: true,
+                    flags: discord_js_1.MessageFlags.Ephemeral,
                 });
                 return;
             }
+            await interaction.deferUpdate();
             if (interaction.customId === exports.TICKET_CLAIM_BUTTON_ID) {
                 this.ticketRepo.setClaim(ticket.id, interaction.user.id);
                 await this.notifyOpenerClaimed(interaction, ticket.opener_id, ticket.id);
@@ -468,7 +469,7 @@ class TicketService {
                     .setCustomId(exports.TICKET_CLOSE_BUTTON_ID)
                     .setLabel("닫기")
                     .setStyle(discord_js_1.ButtonStyle.Danger));
-                await interaction.update({
+                await interaction.message.edit({
                     content: `이 티켓은 <@${interaction.user.id}>가 클레임했어요.`,
                     components: [row],
                 });
@@ -483,7 +484,7 @@ class TicketService {
                     .setCustomId(exports.TICKET_CLOSE_BUTTON_ID)
                     .setLabel("닫기")
                     .setStyle(discord_js_1.ButtonStyle.Danger));
-                await interaction.update({
+                await interaction.message.edit({
                     content: "클레임이 해제되었어요.",
                     components: [row],
                 });
@@ -495,13 +496,13 @@ class TicketService {
                 if (interaction.deferred || interaction.replied) {
                     await interaction.followUp({
                         content: "클레임 처리 중 오류가 발생했어요.",
-                        ephemeral: true,
+                        flags: discord_js_1.MessageFlags.Ephemeral,
                     });
                 }
                 else {
                     await interaction.reply({
                         content: "클레임 처리 중 오류가 발생했어요.",
-                        ephemeral: true,
+                        flags: discord_js_1.MessageFlags.Ephemeral,
                     });
                 }
             }
