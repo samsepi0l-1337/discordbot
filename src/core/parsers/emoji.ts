@@ -13,7 +13,10 @@ export function parseEmojiToken(token: string): ParsedEmoji | null {
   return { key: `u:${trimmed}`, raw: trimmed };
 }
 
-export function emojiKeyFromReaction(emojiId?: string | null, emojiName?: string | null) {
+export function emojiKeyFromReaction(
+  emojiId?: string | null,
+  emojiName?: string | null,
+) {
   if (emojiId) return `c:${emojiId}`;
   if (emojiName) return `u:${emojiName}`;
   return null;

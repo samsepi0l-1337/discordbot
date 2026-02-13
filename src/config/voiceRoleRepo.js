@@ -6,7 +6,7 @@ function addVoiceRole(guildId, voiceChannelId, roleId) {
     `
     INSERT OR IGNORE INTO voice_roles (guild_id, voice_channel_id, role_id)
     VALUES (?, ?, ?)
-  `
+  `,
   ).run(guildId, voiceChannelId, roleId);
 }
 
@@ -17,7 +17,7 @@ function removeVoiceRole(guildId, voiceChannelId, roleId) {
       `
       DELETE FROM voice_roles
       WHERE guild_id = ? AND voice_channel_id = ? AND role_id = ?
-    `
+    `,
     )
     .run(guildId, voiceChannelId, roleId).changes;
 }
@@ -31,7 +31,7 @@ function listVoiceRoles(guildId) {
       FROM voice_roles
       WHERE guild_id = ?
       ORDER BY voice_channel_id ASC, role_id ASC
-    `
+    `,
     )
     .all(guildId);
 }
@@ -45,7 +45,7 @@ function listVoiceRolesByChannel(guildId, voiceChannelId) {
       FROM voice_roles
       WHERE guild_id = ? AND voice_channel_id = ?
       ORDER BY role_id ASC
-    `
+    `,
     )
     .all(guildId, voiceChannelId);
 }

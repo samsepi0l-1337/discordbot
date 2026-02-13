@@ -8,7 +8,7 @@ function setDmEnabled(guildId, enabled) {
     VALUES (?, ?)
     ON CONFLICT(guild_id) DO UPDATE SET
       dm_enabled = excluded.dm_enabled
-  `
+  `,
   ).run(guildId, enabled ? 1 : 0);
 }
 
@@ -20,7 +20,7 @@ function getDmEnabled(guildId) {
       SELECT dm_enabled
       FROM rr_settings
       WHERE guild_id = ?
-    `
+    `,
     )
     .get(guildId);
   return row ? row.dm_enabled === 1 : false;

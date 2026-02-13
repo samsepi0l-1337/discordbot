@@ -35,18 +35,21 @@ function formatChannel(id?: string | null) {
 }
 
 function isSupport(interaction: ChatInputCommandInteraction, config: any) {
-  if (config?.ticket_support_user_ids?.includes(interaction.user.id)) return true;
+  if (config?.ticket_support_user_ids?.includes(interaction.user.id))
+    return true;
   if (!config?.ticket_support_role_ids?.length) return false;
   const roleCache = (interaction.member as any)?.roles?.cache;
-  return roleCache?.some((role: { id: string; }) =>
-    config.ticket_support_role_ids.includes(role.id)
+  return roleCache?.some((role: { id: string }) =>
+    config.ticket_support_role_ids.includes(role.id),
   );
 }
 
 async function isThreadParticipant(interaction: ChatInputCommandInteraction) {
   if (!interaction.channel?.isThread?.()) return false;
   try {
-    const member = await interaction.channel.members.fetch(interaction.user.id).catch(() => null);
+    const member = await interaction.channel.members
+      .fetch(interaction.user.id)
+      .catch(() => null);
     return Boolean(member);
   } catch {
     return false;
@@ -57,9 +60,13 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName("ticket")
     .setDescription("티켓 설정/관리")
-    .addSubcommand((sub) => sub.setName("show").setDescription("현재 티켓 설정 보기"))
     .addSubcommand((sub) =>
-      sub.setName("panel").setDescription("이 채널에 티켓 생성 버튼(패널 메시지) 올리기")
+      sub.setName("show").setDescription("현재 티켓 설정 보기"),
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("panel")
+        .setDescription("이 채널에 티켓 생성 버튼(패널 메시지) 올리기"),
     )
     .addSubcommand((sub) =>
       sub
@@ -70,8 +77,8 @@ module.exports = {
             .setName("category")
             .setDescription("카테고리")
             .setRequired(true)
-            .addChannelTypes(ChannelType.GuildCategory)
-        )
+            .addChannelTypes(ChannelType.GuildCategory),
+        ),
     )
     .addSubcommand((sub) =>
       sub
@@ -82,76 +89,78 @@ module.exports = {
             .setName("channel")
             .setDescription("전송 채널")
             .setRequired(true)
-            .addChannelTypes(ChannelType.GuildText)
-        )
+            .addChannelTypes(ChannelType.GuildText),
+        ),
     )
     .addSubcommand((sub) =>
       sub
         .setName("add-support-role")
         .setDescription("지원팀 역할 추가(티켓 스레드에 초대)")
         .addRoleOption((option) =>
-          option.setName("role").setDescription("역할").setRequired(true)
-        )
+          option.setName("role").setDescription("역할").setRequired(true),
+        ),
     )
     .addSubcommand((sub) =>
       sub
         .setName("remove-support-role")
         .setDescription("지원팀 역할 제거")
         .addRoleOption((option) =>
-          option.setName("role").setDescription("역할").setRequired(true)
-        )
+          option.setName("role").setDescription("역할").setRequired(true),
+        ),
     )
     .addSubcommand((sub) =>
       sub
         .setName("add-support-user")
         .setDescription("지원팀 유저 추가(티켓 스레드에 초대)")
         .addUserOption((option) =>
-          option.setName("user").setDescription("유저").setRequired(true)
-        )
+          option.setName("user").setDescription("유저").setRequired(true),
+        ),
     )
     .addSubcommand((sub) =>
       sub
         .setName("remove-support-user")
         .setDescription("지원팀 유저 제거")
         .addUserOption((option) =>
-          option.setName("user").setDescription("유저").setRequired(true)
-        )
+          option.setName("user").setDescription("유저").setRequired(true),
+        ),
     )
     .addSubcommand((sub) =>
       sub
         .setName("close")
         .setDescription("이 티켓 스레드 닫기(잠금/아카이브)")
         .addStringOption((option) =>
-          option.setName("reason").setDescription("사유(선택)")
-        )
+          option.setName("reason").setDescription("사유(선택)"),
+        ),
     )
-    .addSubcommand((sub) => sub.setName("claim").setDescription("이 티켓 담당하기(클레임)"))
     .addSubcommand((sub) =>
-      sub.setName("unclaim").setDescription("담당 해제하기(언클레임)")
+      sub.setName("claim").setDescription("이 티켓 담당하기(클레임)"),
+    )
+    .addSubcommand((sub) =>
+      sub.setName("unclaim").setDescription("담당 해제하기(언클레임)"),
     )
     .addSubcommand((sub) =>
       sub
         .setName("transfer")
         .setDescription("담당자를 다른 스태프로 넘기기(transfer)")
         .addUserOption((option) =>
-          option.setName("user").setDescription("대상").setRequired(true)
-        )
+          option.setName("user").setDescription("대상").setRequired(true),
+        ),
     )
     .addSubcommand((sub) =>
       sub
         .setName("add")
         .setDescription("이 티켓에 유저 초대하기")
         .addUserOption((option) =>
-          option.setName("user").setDescription("유저").setRequired(true)
-        )
+          option.setName("user").setDescription("유저").setRequired(true),
+        ),
     )
     .addSubcommand((sub) =>
       sub
         .setName("remove")
         .setDescription("이 티켓에서 유저 내보내기")
         .addUserOption((option) =>
-          option.setName("user").setDescription("유저").setRequired(true)
-        )
+          option.setName("user").setDescription("유저").setRequired(true),
+        ),
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -168,13 +177,13 @@ module.exports = {
     const config = getConfig(guildId);
     const sub = interaction.options.getSubcommand();
     const hasAdmin = interaction.memberPermissions?.has(
-      PermissionsBitField.Flags.ManageGuild
+      PermissionsBitField.Flags.ManageGuild,
     );
     const canManage = canManageCommands(
       interaction.member as never,
       interaction.user.id,
       config || {},
-      Boolean(hasAdmin)
+      Boolean(hasAdmin),
     );
 
     if (
@@ -294,7 +303,10 @@ module.exports = {
       return;
     }
 
-    const ticket = ticketService.getOpenTicketByChannel(guildId, interaction.channel!.id);
+    const ticket = ticketService.getOpenTicketByChannel(
+      guildId,
+      interaction.channel!.id,
+    );
     if (!ticket) {
       await interaction.reply({
         content: "이 채널은 티켓 채널이 아니에요.",
@@ -403,9 +415,9 @@ module.exports = {
       }
       await interaction.reply({
         content:
-          sub === "add"
-            ? `티켓에 ${formatUser(user.id)}를 추가했어요.`
-            : `티켓에서 ${formatUser(user.id)}를 제거했어요.`,
+          sub === "add" ?
+            `티켓에 ${formatUser(user.id)}를 추가했어요.`
+          : `티켓에서 ${formatUser(user.id)}를 제거했어요.`,
       });
     }
   },

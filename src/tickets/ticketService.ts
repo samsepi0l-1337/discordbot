@@ -14,14 +14,17 @@ const configRepo = new SqliteGuildConfigRepo();
 const service = new TicketService(ticketRepo, configRepo);
 
 const postTicketPanel = service.postTicketPanel.bind(service);
-const createTicketChannelTicket = service.createTicketChannelTicket.bind(service);
-const handleTicketCreateModalSubmit = service.handleTicketCreateModalSubmit.bind(service);
+const createTicketChannelTicket =
+  service.createTicketChannelTicket.bind(service);
+const handleTicketCreateModalSubmit =
+  service.handleTicketCreateModalSubmit.bind(service);
 const handleTicketCloseButton = service.handleTicketCloseButton.bind(service);
 const handleTicketClaimButton = service.handleTicketClaimButton.bind(service);
 const purgeOldTickets = service.purgeOldTickets.bind(service);
 
 const createTicketSession = ticketRepo.createSession.bind(ticketRepo);
-const getLatestOpenTicketForUser = ticketRepo.getLatestOpenByUser.bind(ticketRepo);
+const getLatestOpenTicketForUser =
+  ticketRepo.getLatestOpenByUser.bind(ticketRepo);
 const getTicketById = ticketRepo.getById.bind(ticketRepo);
 const getOpenTicketByChannel = ticketRepo.getOpenByChannel.bind(ticketRepo);
 const touchTicket = ticketRepo.touch.bind(ticketRepo);

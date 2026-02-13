@@ -61,7 +61,7 @@ async function assignRole(member, roleId, contextLabel) {
     await notifyGuildIssue(
       member.guild,
       `설정된 역할을 찾을 수 없어요. 역할 ID: ${roleId} (상황: ${contextLabel})`,
-      `${member.guild.id}:role-not-found:${roleId}:${contextLabel}`
+      `${member.guild.id}:role-not-found:${roleId}:${contextLabel}`,
     );
     return { ok: false, reason: "role-not-found" };
   }
@@ -70,8 +70,9 @@ async function assignRole(member, roleId, contextLabel) {
     return { ok: true, reason: "already-has-role" };
   }
 
-  const botMember = member.guild.members.me
-    ? member.guild.members.me
+  const botMember =
+    member.guild.members.me ?
+      member.guild.members.me
     : await member.guild.members.fetchMe();
 
   if (!botMember.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
@@ -79,7 +80,7 @@ async function assignRole(member, roleId, contextLabel) {
     await notifyGuildIssue(
       member.guild,
       "봇에 역할 관리 권한(Manage Roles)이 필요해요. 역할 부여에 실패했어요.",
-      `${member.guild.id}:missing-permission:${roleId}:${contextLabel}`
+      `${member.guild.id}:missing-permission:${roleId}:${contextLabel}`,
     );
     return { ok: false, reason: "missing-permission" };
   }
@@ -89,7 +90,7 @@ async function assignRole(member, roleId, contextLabel) {
     await notifyGuildIssue(
       member.guild,
       "봇 역할이 부여하려는 역할보다 높아야 해요. 역할 부여에 실패했어요.",
-      `${member.guild.id}:role-hierarchy:${roleId}:${contextLabel}`
+      `${member.guild.id}:role-hierarchy:${roleId}:${contextLabel}`,
     );
     return { ok: false, reason: "role-hierarchy" };
   }
@@ -102,7 +103,7 @@ async function assignRole(member, roleId, contextLabel) {
     await notifyGuildIssue(
       member.guild,
       "역할 부여 중 오류가 발생했어요. 권한과 역할 설정을 확인해주세요.",
-      `${member.guild.id}:assign-failed:${roleId}:${contextLabel}`
+      `${member.guild.id}:assign-failed:${roleId}:${contextLabel}`,
     );
     return { ok: false, reason: "assign-failed" };
   }
@@ -124,7 +125,7 @@ async function removeRole(member, roleId, contextLabel) {
     await notifyGuildIssue(
       member.guild,
       `설정된 역할을 찾을 수 없어요. 역할 ID: ${roleId} (상황: ${contextLabel})`,
-      `${member.guild.id}:role-not-found:${roleId}:${contextLabel}`
+      `${member.guild.id}:role-not-found:${roleId}:${contextLabel}`,
     );
     return { ok: false, reason: "role-not-found" };
   }
@@ -133,8 +134,9 @@ async function removeRole(member, roleId, contextLabel) {
     return { ok: true, reason: "not-has-role" };
   }
 
-  const botMember = member.guild.members.me
-    ? member.guild.members.me
+  const botMember =
+    member.guild.members.me ?
+      member.guild.members.me
     : await member.guild.members.fetchMe();
 
   if (!botMember.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
@@ -142,7 +144,7 @@ async function removeRole(member, roleId, contextLabel) {
     await notifyGuildIssue(
       member.guild,
       "봇에 역할 관리 권한(Manage Roles)이 필요해요. 역할 제거에 실패했어요.",
-      `${member.guild.id}:missing-permission:${roleId}:${contextLabel}`
+      `${member.guild.id}:missing-permission:${roleId}:${contextLabel}`,
     );
     return { ok: false, reason: "missing-permission" };
   }
@@ -152,7 +154,7 @@ async function removeRole(member, roleId, contextLabel) {
     await notifyGuildIssue(
       member.guild,
       "봇 역할이 제거하려는 역할보다 높아야 해요. 역할 제거에 실패했어요.",
-      `${member.guild.id}:role-hierarchy:${roleId}:${contextLabel}`
+      `${member.guild.id}:role-hierarchy:${roleId}:${contextLabel}`,
     );
     return { ok: false, reason: "role-hierarchy" };
   }
@@ -165,7 +167,7 @@ async function removeRole(member, roleId, contextLabel) {
     await notifyGuildIssue(
       member.guild,
       "역할 제거 중 오류가 발생했어요. 권한과 역할 설정을 확인해주세요.",
-      `${member.guild.id}:remove-failed:${roleId}:${contextLabel}`
+      `${member.guild.id}:remove-failed:${roleId}:${contextLabel}`,
     );
     return { ok: false, reason: "remove-failed" };
   }

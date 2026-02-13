@@ -16,8 +16,8 @@ export class OnboardingService<Member> {
     private readonly autoroleRepo: AutoroleRepoPort,
     private readonly timedRoleRepo: TimedRoleRepoPort,
     private readonly roleManager: RoleManagerPort<Member>,
-    private readonly schedule: Scheduler
-  ) { }
+    private readonly schedule: Scheduler,
+  ) {}
 
   async handleMemberAdd(input: MemberInput<Member>) {
     const autoroles = this.autoroleRepo.list(input.guildId);
@@ -28,7 +28,11 @@ export class OnboardingService<Member> {
         (rule.target === "user" && !input.isBot);
       if (!shouldAssign) continue;
       this.schedule(() => {
-        void this.roleManager.assignRole(input.member, rule.role_id, "autorole");
+        void this.roleManager.assignRole(
+          input.member,
+          rule.role_id,
+          "autorole",
+        );
       }, 0);
     }
 
@@ -39,9 +43,15 @@ export class OnboardingService<Member> {
       const raw = Number((rule as any).delay_ms);
       const baseDelayMs = Number.isFinite(raw) ? Math.max(0, raw) : 0;
       const delayMs =
-        baseDelayMs > 0 && baseDelayMs < 1000 ? baseDelayMs * 1000 : baseDelayMs;
+        baseDelayMs > 0 && baseDelayMs < 1000 ?
+          baseDelayMs * 1000
+        : baseDelayMs;
       this.schedule(() => {
-        void this.roleManager.assignRole(input.member, rule.role_id, "timed-role");
+        void this.roleManager.assignRole(
+          input.member,
+          rule.role_id,
+          "timed-role",
+        );
       }, delayMs);
     }
   }

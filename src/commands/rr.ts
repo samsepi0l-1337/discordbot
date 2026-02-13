@@ -12,20 +12,30 @@ import { getConfig } from "../config/guildConfigRepo";
 import {
   setActiveMessage,
   getActiveMessage,
-  clearActiveMessage,
   addRule,
   listRulesByMessage,
   listRulesByGuild,
-  listRulesByMessageEmoji,
   deleteRulesByMessage,
   deleteRulesByEmoji,
   deleteRulesByRole,
   deleteRulesMissingRoles,
 } from "../config/rrRepo";
-import { setDmEnabled, getDmEnabled } from "../config/rrSettingsRepo";
-import { addAutorole, removeAutorole, listAutoroles } from "../config/autoroleRepo";
-import { addTimedRole, removeTimedRole, listTimedRoles } from "../config/timedRoleRepo";
-import { addVoiceRole, removeVoiceRole, listVoiceRoles } from "../config/voiceRoleRepo";
+import { setDmEnabled } from "../config/rrSettingsRepo";
+import {
+  addAutorole,
+  removeAutorole,
+  listAutoroles,
+} from "../config/autoroleRepo";
+import {
+  addTimedRole,
+  removeTimedRole,
+  listTimedRoles,
+} from "../config/timedRoleRepo";
+import {
+  addVoiceRole,
+  removeVoiceRole,
+  listVoiceRoles,
+} from "../config/voiceRoleRepo";
 import { canManageCommands } from "../core/permissions";
 import { formatRole, formatChannel } from "../core/formatters/mentions";
 import { formatEmojiKey } from "../core/formatters/mentions";
@@ -48,7 +58,11 @@ function formatDelayMs(ms: number): string {
   return `${Math.round(safe / (24 * 60 * 60_000))}일`;
 }
 
-async function fetchActiveMessage(interaction: ChatInputCommandInteraction | MessageContextMenuCommandInteraction) {
+async function fetchActiveMessage(
+  interaction:
+    | ChatInputCommandInteraction
+    | MessageContextMenuCommandInteraction,
+) {
   const guild = interaction.guild!;
   let messageId = (interaction as any).options?.getString?.("message_id");
 
@@ -66,9 +80,13 @@ async function fetchActiveMessage(interaction: ChatInputCommandInteraction | Mes
   if (!messageId) {
     const active = getActiveMessage(guild.id);
     if (!active?.message_id) return null;
-    const channel = await guild.channels.fetch(active.channel_id).catch(() => null);
+    const channel = await guild.channels
+      .fetch(active.channel_id)
+      .catch(() => null);
     if (!channel?.isTextBased()) return null;
-    const message = await channel.messages.fetch(active.message_id).catch(() => null);
+    const message = await channel.messages
+      .fetch(active.message_id)
+      .catch(() => null);
     if (!message) return null;
     return { channel, message };
   }
@@ -78,7 +96,9 @@ async function fetchActiveMessage(interaction: ChatInputCommandInteraction | Mes
   const channelId = active?.channel_id || interaction.channelId;
   const channel = await guild.channels.fetch(channelId).catch(() => null);
   if (!channel?.isTextBased()) return null;
-  const message = await (channel as any).messages.fetch(messageId).catch(() => null);
+  const message = await (channel as any).messages
+    .fetch(messageId)
+    .catch(() => null);
   if (!message) return null;
 
   // For convenience, if found via reply or arg, set as active
@@ -106,16 +126,19 @@ module.exports = {
             .setName("channel")
             .setDescription("대상 채널")
             .setRequired(true)
-            .addChannelTypes(ChannelType.GuildText)
-        )
+            .addChannelTypes(ChannelType.GuildText),
+        ),
     )
     .addSubcommand((sub) =>
       sub
         .setName("message")
         .setDescription("활성 메시지 선택 (ID 미입력 시 답글 대상 사용)")
         .addStringOption((option) =>
-          option.setName("message_id").setDescription("메시지 ID (선택)").setRequired(false)
-        )
+          option
+            .setName("message_id")
+            .setDescription("메시지 ID (선택)")
+            .setRequired(false),
+        ),
     )
     .addSubcommandGroup((group) =>
       group
@@ -126,59 +149,71 @@ module.exports = {
             .setName("normal")
             .setDescription("리액션 추가 시 역할 부여, 제거 시 해제")
             .addStringOption((option) =>
-              option.setName("emoji").setDescription("이모지").setRequired(true)
+              option
+                .setName("emoji")
+                .setDescription("이모지")
+                .setRequired(true),
             )
             .addRoleOption((option) =>
-              option.setName("role").setDescription("역할").setRequired(true)
-            )
+              option.setName("role").setDescription("역할").setRequired(true),
+            ),
         )
         .addSubcommand((sub) =>
           sub
             .setName("once")
             .setDescription("1회성 역할 부여(리액션 제거)")
             .addStringOption((option) =>
-              option.setName("emoji").setDescription("이모지").setRequired(true)
+              option
+                .setName("emoji")
+                .setDescription("이모지")
+                .setRequired(true),
             )
             .addRoleOption((option) =>
-              option.setName("role").setDescription("역할").setRequired(true)
-            )
+              option.setName("role").setDescription("역할").setRequired(true),
+            ),
         )
         .addSubcommand((sub) =>
           sub
             .setName("remove")
             .setDescription("리액션 시 역할 제거")
             .addStringOption((option) =>
-              option.setName("emoji").setDescription("이모지").setRequired(true)
+              option
+                .setName("emoji")
+                .setDescription("이모지")
+                .setRequired(true),
             )
             .addRoleOption((option) =>
-              option.setName("role").setDescription("역할").setRequired(true)
-            )
+              option.setName("role").setDescription("역할").setRequired(true),
+            ),
         )
         .addSubcommand((sub) =>
           sub
             .setName("toggle")
             .setDescription("같은 그룹 내에서 하나만 선택")
             .addStringOption((option) =>
-              option.setName("emoji").setDescription("이모지").setRequired(true)
+              option
+                .setName("emoji")
+                .setDescription("이모지")
+                .setRequired(true),
             )
             .addRoleOption((option) =>
-              option.setName("role").setDescription("역할").setRequired(true)
+              option.setName("role").setDescription("역할").setRequired(true),
             )
             .addStringOption((option) =>
               option
                 .setName("group")
                 .setDescription("토글 그룹(기본 default)")
-                .setRequired(false)
-            )
-        )
+                .setRequired(false),
+            ),
+        ),
     )
     .addSubcommand((sub) =>
       sub
         .setName("list")
         .setDescription("리액션 역할 목록")
         .addStringOption((option) =>
-          option.setName("message_id").setDescription("특정 메시지 ID(선택)")
-        )
+          option.setName("message_id").setDescription("특정 메시지 ID(선택)"),
+        ),
     )
     .addSubcommandGroup((group) =>
       group
@@ -187,41 +222,64 @@ module.exports = {
         .addSubcommand((sub) =>
           sub
             .setName("all")
-            .setDescription("메시지의 모든 리액션 역할 삭제 (ID 미입력 시 답글 대상 사용)")
-            .addStringOption((option) =>
-              option.setName("message_id").setDescription("메시지 ID (선택)").setRequired(false)
+            .setDescription(
+              "메시지의 모든 리액션 역할 삭제 (ID 미입력 시 답글 대상 사용)",
             )
+            .addStringOption((option) =>
+              option
+                .setName("message_id")
+                .setDescription("메시지 ID (선택)")
+                .setRequired(false),
+            ),
         )
         .addSubcommand((sub) =>
           sub
             .setName("reaction-role")
-            .setDescription("메시지에서 특정 역할 삭제 (ID 미입력 시 답글 대상 사용)")
+            .setDescription(
+              "메시지에서 특정 역할 삭제 (ID 미입력 시 답글 대상 사용)",
+            )
             .addRoleOption((option) =>
-              option.setName("role").setDescription("역할").setRequired(true)
+              option.setName("role").setDescription("역할").setRequired(true),
             )
             .addStringOption((option) =>
-              option.setName("message_id").setDescription("메시지 ID (선택)").setRequired(false)
-            )
+              option
+                .setName("message_id")
+                .setDescription("메시지 ID (선택)")
+                .setRequired(false),
+            ),
         )
         .addSubcommand((sub) =>
           sub
             .setName("reaction-emoji")
-            .setDescription("메시지에서 특정 이모지 삭제 (ID 미입력 시 답글 대상 사용)")
-            .addStringOption((option) =>
-              option.setName("emoji").setDescription("이모지").setRequired(true)
+            .setDescription(
+              "메시지에서 특정 이모지 삭제 (ID 미입력 시 답글 대상 사용)",
             )
             .addStringOption((option) =>
-              option.setName("message_id").setDescription("메시지 ID (선택)").setRequired(false)
+              option
+                .setName("emoji")
+                .setDescription("이모지")
+                .setRequired(true),
             )
+            .addStringOption((option) =>
+              option
+                .setName("message_id")
+                .setDescription("메시지 ID (선택)")
+                .setRequired(false),
+            ),
         )
         .addSubcommand((sub) =>
           sub
             .setName("check")
-            .setDescription("삭제된 역할 참조 정리 (ID 미입력 시 답글 대상 사용)")
-            .addStringOption((option) =>
-              option.setName("message_id").setDescription("메시지 ID (선택)").setRequired(false)
+            .setDescription(
+              "삭제된 역할 참조 정리 (ID 미입력 시 답글 대상 사용)",
             )
-        )
+            .addStringOption((option) =>
+              option
+                .setName("message_id")
+                .setDescription("메시지 ID (선택)")
+                .setRequired(false),
+            ),
+        ),
     )
     .addSubcommandGroup((group) =>
       group
@@ -238,12 +296,12 @@ module.exports = {
                 .setRequired(true)
                 .addChoices(
                   { name: "user", value: "user" },
-                  { name: "bot", value: "bot" }
-                )
+                  { name: "bot", value: "bot" },
+                ),
             )
             .addRoleOption((option) =>
-              option.setName("role").setDescription("역할").setRequired(true)
-            )
+              option.setName("role").setDescription("역할").setRequired(true),
+            ),
         )
         .addSubcommand((sub) =>
           sub
@@ -256,14 +314,16 @@ module.exports = {
                 .setRequired(true)
                 .addChoices(
                   { name: "user", value: "user" },
-                  { name: "bot", value: "bot" }
-                )
+                  { name: "bot", value: "bot" },
+                ),
             )
             .addRoleOption((option) =>
-              option.setName("role").setDescription("역할").setRequired(true)
-            )
+              option.setName("role").setDescription("역할").setRequired(true),
+            ),
         )
-        .addSubcommand((sub) => sub.setName("show").setDescription("autorole 목록"))
+        .addSubcommand((sub) =>
+          sub.setName("show").setDescription("autorole 목록"),
+        ),
     )
     .addSubcommandGroup((group) =>
       group
@@ -274,24 +334,26 @@ module.exports = {
             .setName("add")
             .setDescription("timed role 추가")
             .addRoleOption((option) =>
-              option.setName("role").setDescription("역할").setRequired(true)
+              option.setName("role").setDescription("역할").setRequired(true),
             )
             .addStringOption((option) =>
               option
                 .setName("time")
                 .setDescription("시간(예: 10s, 10m, 2h, 1d)")
-                .setRequired(true)
-            )
+                .setRequired(true),
+            ),
         )
         .addSubcommand((sub) =>
           sub
             .setName("delete")
             .setDescription("timed role 제거")
             .addRoleOption((option) =>
-              option.setName("role").setDescription("역할").setRequired(true)
-            )
+              option.setName("role").setDescription("역할").setRequired(true),
+            ),
         )
-        .addSubcommand((sub) => sub.setName("show").setDescription("timed role 목록"))
+        .addSubcommand((sub) =>
+          sub.setName("show").setDescription("timed role 목록"),
+        ),
     )
     .addSubcommandGroup((group) =>
       group
@@ -306,11 +368,14 @@ module.exports = {
                 .setName("channel")
                 .setDescription("음성 채널")
                 .setRequired(true)
-                .addChannelTypes(ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+                .addChannelTypes(
+                  ChannelType.GuildVoice,
+                  ChannelType.GuildStageVoice,
+                ),
             )
             .addRoleOption((option) =>
-              option.setName("role").setDescription("역할").setRequired(true)
-            )
+              option.setName("role").setDescription("역할").setRequired(true),
+            ),
         )
         .addSubcommand((sub) =>
           sub
@@ -321,13 +386,18 @@ module.exports = {
                 .setName("channel")
                 .setDescription("음성 채널")
                 .setRequired(true)
-                .addChannelTypes(ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+                .addChannelTypes(
+                  ChannelType.GuildVoice,
+                  ChannelType.GuildStageVoice,
+                ),
             )
             .addRoleOption((option) =>
-              option.setName("role").setDescription("역할").setRequired(true)
-            )
+              option.setName("role").setDescription("역할").setRequired(true),
+            ),
         )
-        .addSubcommand((sub) => sub.setName("show").setDescription("음성 채널 역할 목록"))
+        .addSubcommand((sub) =>
+          sub.setName("show").setDescription("음성 채널 역할 목록"),
+        ),
     )
     .addSubcommand((sub) =>
       sub
@@ -340,12 +410,16 @@ module.exports = {
             .setRequired(true)
             .addChoices(
               { name: "on", value: "on" },
-              { name: "off", value: "off" }
-            )
-        )
+              { name: "off", value: "off" },
+            ),
+        ),
     ),
 
-  async execute(interaction: ChatInputCommandInteraction | MessageContextMenuCommandInteraction) {
+  async execute(
+    interaction:
+      | ChatInputCommandInteraction
+      | MessageContextMenuCommandInteraction,
+  ) {
     if (!interaction.inGuild()) {
       await (interaction as any).reply({
         content: "이 명령은 서버에서만 사용할 수 있어요.",
@@ -358,13 +432,13 @@ module.exports = {
     const guildId = guild.id;
     const config = getConfig(guildId);
     const hasAdmin = interaction.memberPermissions?.has(
-      PermissionsBitField.Flags.ManageGuild
+      PermissionsBitField.Flags.ManageGuild,
     );
     const allowed = canManageCommands(
       interaction.member as never,
       interaction.user.id,
       config || {},
-      Boolean(hasAdmin)
+      Boolean(hasAdmin),
     );
     if (!allowed) {
       await (interaction as any).reply({
@@ -412,7 +486,8 @@ module.exports = {
 
       if (!targetMessageId) {
         await interaction.reply({
-          content: "메시지 ID를 입력하거나, 대상 메시지에 답글(Reply)을 달고 명령어를 실행해주세요.",
+          content:
+            "메시지 ID를 입력하거나, 대상 메시지에 답글(Reply)을 달고 명령어를 실행해주세요.",
           flags: MessageFlags.Ephemeral,
         });
         return;
@@ -423,15 +498,19 @@ module.exports = {
       const channel = await guild.channels.fetch(channelId).catch(() => null);
       if (!channel?.isTextBased()) {
         await interaction.reply({
-          content: "활성 채널을 찾을 수 없어요. /rr channel로 먼저 설정해주세요.",
+          content:
+            "활성 채널을 찾을 수 없어요. /rr channel로 먼저 설정해주세요.",
           flags: MessageFlags.Ephemeral,
         });
         return;
       }
-      const message = await (channel as any).messages.fetch(targetMessageId).catch(() => null);
+      const message = await (channel as any).messages
+        .fetch(targetMessageId)
+        .catch(() => null);
       if (!message) {
         await interaction.reply({
-          content: "메시지를 찾지 못했어요. ID를 확인하거나 해당 채널이 맞는지 확인해주세요.",
+          content:
+            "메시지를 찾지 못했어요. ID를 확인하거나 해당 채널이 맞는지 확인해주세요.",
           flags: MessageFlags.Ephemeral,
         });
         return;
@@ -448,7 +527,8 @@ module.exports = {
       const active = await fetchActiveMessage(interaction);
       if (!active) {
         await interaction.reply({
-          content: "활성 메시지가 없어요. /rr channel + /rr message로 설정해주세요.",
+          content:
+            "활성 메시지가 없어요. /rr channel + /rr message로 설정해주세요.",
           flags: MessageFlags.Ephemeral,
         });
         return;
@@ -479,7 +559,8 @@ module.exports = {
         const hasOnce = rules.some((rule) => rule.type === "once");
         if (hasOnce) {
           await interaction.reply({
-            content: "once 타입이 설정된 메시지에는 다른 타입을 추가할 수 없어요.",
+            content:
+              "once 타입이 설정된 메시지에는 다른 타입을 추가할 수 없어요.",
             flags: MessageFlags.Ephemeral,
           });
           return;
@@ -487,7 +568,9 @@ module.exports = {
       }
 
       const toggleGroup =
-        type === "toggle" ? interaction.options.getString("group") || "default" : null;
+        type === "toggle" ?
+          interaction.options.getString("group") || "default"
+        : null;
       addRule({
         guildId,
         messageId: active.message.id,
@@ -505,7 +588,7 @@ module.exports = {
 
       await interaction.reply({
         content: `리액션 역할을 추가했어요. ${formatEmojiKey(parsed.key)} → ${formatRole(
-          role.id
+          role.id,
         )}`,
         flags: MessageFlags.Ephemeral,
       });
@@ -514,7 +597,10 @@ module.exports = {
 
     if (sub === "list") {
       const messageId = interaction.options.getString("message_id");
-      const rules = messageId ? listRulesByMessage(guildId, messageId) : listRulesByGuild(guildId);
+      const rules =
+        messageId ?
+          listRulesByMessage(guildId, messageId)
+        : listRulesByGuild(guildId);
       if (!rules.length) {
         await interaction.reply({
           content: "등록된 리액션 역할이 없어요.",
@@ -531,8 +617,9 @@ module.exports = {
         const detail = items
           .map(
             (rule: RrRule) =>
-              `${formatEmojiKey(rule.emoji_key)} → ${formatRole(rule.role_id)} (${rule.type}${rule.toggle_group ? `:${rule.toggle_group}` : ""
-              })`
+              `${formatEmojiKey(rule.emoji_key)} → ${formatRole(rule.role_id)} (${rule.type}${
+                rule.toggle_group ? `:${rule.toggle_group}` : ""
+              })`,
           )
           .join(", ");
         return `- ${msgId}: ${detail}`;
@@ -558,7 +645,8 @@ module.exports = {
           targetMessageId = active.message_id;
         } else {
           await interaction.reply({
-            content: "메시지 ID를 입력하거나, 대상 메시지에 답글(Reply)을 달아주세요.",
+            content:
+              "메시지 ID를 입력하거나, 대상 메시지에 답글(Reply)을 달아주세요.",
             flags: MessageFlags.Ephemeral,
           });
           return;
@@ -592,7 +680,11 @@ module.exports = {
           });
           return;
         }
-        const removed = deleteRulesByEmoji(guildId, targetMessageId, parsed.key);
+        const removed = deleteRulesByEmoji(
+          guildId,
+          targetMessageId,
+          parsed.key,
+        );
         await interaction.reply({
           content: `삭제 완료: ${removed}개 (메시지 ID: ${targetMessageId})`,
           flags: MessageFlags.Ephemeral,
@@ -600,10 +692,14 @@ module.exports = {
         return;
       }
       if (sub === "check") {
-        const channelId = getActiveMessage(guildId)?.channel_id || interaction.channelId;
+        const channelId =
+          getActiveMessage(guildId)?.channel_id || interaction.channelId;
         const channel = await guild.channels.fetch(channelId).catch(() => null);
-        const message = (channel?.isTextBased() && targetMessageId)
-          ? await (channel as any).messages.fetch(targetMessageId).catch(() => null)
+        const message =
+          channel?.isTextBased() && targetMessageId ?
+            await (channel as any).messages
+              .fetch(targetMessageId)
+              .catch(() => null)
           : null;
         if (!message) {
           const removed = deleteRulesByMessage(guildId, targetMessageId);
@@ -614,7 +710,11 @@ module.exports = {
           return;
         }
         const roleIds = [...message.guild.roles.cache.keys()];
-        const removed = deleteRulesMissingRoles(guildId, targetMessageId, roleIds);
+        const removed = deleteRulesMissingRoles(
+          guildId,
+          targetMessageId,
+          roleIds,
+        );
         await interaction.reply({
           content: `삭제된 역할 참조 정리: ${removed}개`,
           flags: MessageFlags.Ephemeral,
@@ -654,8 +754,8 @@ module.exports = {
           return;
         }
         const lines = items.map(
-          (item: { target: string; role_id: string; }) =>
-            `- ${item.target}: ${formatRole(item.role_id)}`
+          (item: { target: string; role_id: string }) =>
+            `- ${item.target}: ${formatRole(item.role_id)}`,
         );
         await interaction.reply({
           content: `autorole 목록\n${lines.join("\n")}`,
@@ -703,8 +803,8 @@ module.exports = {
           return;
         }
         const lines = items.map(
-          (item: { role_id: string; delay_ms: number; }) =>
-            `- ${formatRole(item.role_id)}: ${formatDelayMs(item.delay_ms)}`
+          (item: { role_id: string; delay_ms: number }) =>
+            `- ${formatRole(item.role_id)}: ${formatDelayMs(item.delay_ms)}`,
         );
         await interaction.reply({
           content: `timed role 목록\n${lines.join("\n")}`,
@@ -721,7 +821,7 @@ module.exports = {
         addVoiceRole(guildId, channel.id, role.id);
         await interaction.reply({
           content: `음성 채널 역할을 추가했어요. ${formatChannel(channel.id)} → ${formatRole(
-            role.id
+            role.id,
           )}`,
           flags: MessageFlags.Ephemeral,
         });
@@ -747,8 +847,8 @@ module.exports = {
           return;
         }
         const lines = items.map(
-          (item: { voice_channel_id: string; role_id: string; }) =>
-            `- <#${item.voice_channel_id}>: ${formatRole(item.role_id)}`
+          (item: { voice_channel_id: string; role_id: string }) =>
+            `- <#${item.voice_channel_id}>: ${formatRole(item.role_id)}`,
         );
         await interaction.reply({
           content: `음성 채널 역할 목록\n${lines.join("\n")}`,

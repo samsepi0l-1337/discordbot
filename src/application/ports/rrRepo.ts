@@ -29,9 +29,21 @@ export interface RrRepoPort {
   }): void;
   listRulesByMessage(guildId: string, messageId: string): ReactionRule[];
   listRulesByGuild(guildId: string): ReactionRule[];
-  listRulesByMessageEmoji(guildId: string, messageId: string, emojiKey: string): ReactionRule[];
+  listRulesByMessageEmoji(
+    guildId: string,
+    messageId: string,
+    emojiKey: string,
+  ): ReactionRule[];
   deleteRulesByMessage(guildId: string, messageId: string): number;
-  deleteRulesByEmoji(guildId: string, messageId: string, emojiKey: string): number;
+  deleteRulesByEmoji(
+    guildId: string,
+    messageId: string,
+    emojiKey: string,
+  ): number;
   deleteRulesByRole(guildId: string, messageId: string, roleId: string): number;
-  deleteRulesMissingRoles(guildId: string, messageId: string, roleIds: string[]): number;
+  deleteRulesMissingRoles(
+    guildId: string,
+    messageId: string,
+    roleIds: string[],
+  ): number;
 }

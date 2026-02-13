@@ -9,7 +9,7 @@
     "dev": "nodemon --watch src --watch docs --ext ts,js,md --exec \"npm run build && npm start\"",
     "test": "jest; clear"
   },
-  "keywords": [],
+  "keywords": [ ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",

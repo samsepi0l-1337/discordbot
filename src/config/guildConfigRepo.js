@@ -3,7 +3,7 @@ const { getDb } = require("./db");
 function ensureGuildRow(guildId) {
   const db = getDb();
   db.prepare("INSERT OR IGNORE INTO guild_config (guild_id) VALUES (?)").run(
-    guildId
+    guildId,
   );
 }
 
@@ -33,33 +33,37 @@ function getConfig(guildId) {
              ticket_recipient_id
       FROM guild_config
       WHERE guild_id = ?
-    `
+    `,
     )
     .get(guildId);
   if (!row) return null;
-  const recipientIds = row.ticket_recipient_id
-    ? row.ticket_recipient_id
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean)
+  const recipientIds =
+    row.ticket_recipient_id ?
+      row.ticket_recipient_id
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean)
     : [];
-  const commandRoleIds = row.command_role_ids
-    ? row.command_role_ids
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean)
+  const commandRoleIds =
+    row.command_role_ids ?
+      row.command_role_ids
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean)
     : [];
-  const commandUserIds = row.command_user_ids
-    ? row.command_user_ids
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean)
+  const commandUserIds =
+    row.command_user_ids ?
+      row.command_user_ids
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean)
     : [];
-  const ticketSupportRoleIds = row.ticket_support_role_ids
-    ? row.ticket_support_role_ids
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean)
+  const ticketSupportRoleIds =
+    row.ticket_support_role_ids ?
+      row.ticket_support_role_ids
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean)
     : [];
   let grantOnPostEmojiMap = {};
   if (row.grant_on_post_emoji_map) {
@@ -94,7 +98,8 @@ function getConfig(guildId) {
 
 function setIntro(guildId, channelId, roleId, mode) {
   ensureGuildRow(guildId);
-  const normalizedMode = mode === "delete" || mode === "remove" ? "remove" : "add";
+  const normalizedMode =
+    mode === "delete" || mode === "remove" ? "remove" : "add";
   const db = getDb();
   if (normalizedMode === "remove") {
     db.prepare(
@@ -103,7 +108,7 @@ function setIntro(guildId, channelId, roleId, mode) {
       SET intro_channel_id = ?,
           intro_remove_role_id = ?
       WHERE guild_id = ?
-    `
+    `,
     ).run(channelId, roleId, guildId);
     return;
   }
@@ -113,7 +118,7 @@ function setIntro(guildId, channelId, roleId, mode) {
     SET intro_channel_id = ?,
         intro_add_role_id = ?
     WHERE guild_id = ?
-  `
+  `,
   ).run(channelId, roleId, guildId);
 }
 
@@ -121,7 +126,7 @@ function setTicketChannel(guildId, channelId) {
   ensureGuildRow(guildId);
   const db = getDb();
   db.prepare(
-    "UPDATE guild_config SET ticket_channel_id = ? WHERE guild_id = ?"
+    "UPDATE guild_config SET ticket_channel_id = ? WHERE guild_id = ?",
   ).run(channelId, guildId);
 }
 
@@ -129,7 +134,7 @@ function setTicketPanelMessage(guildId, messageId) {
   ensureGuildRow(guildId);
   const db = getDb();
   db.prepare(
-    "UPDATE guild_config SET ticket_panel_message_id = ? WHERE guild_id = ?"
+    "UPDATE guild_config SET ticket_panel_message_id = ? WHERE guild_id = ?",
   ).run(messageId, guildId);
 }
 
@@ -137,7 +142,7 @@ function setTicketCategory(guildId, categoryId) {
   ensureGuildRow(guildId);
   const db = getDb();
   db.prepare(
-    "UPDATE guild_config SET ticket_category_id = ? WHERE guild_id = ?"
+    "UPDATE guild_config SET ticket_category_id = ? WHERE guild_id = ?",
   ).run(categoryId, guildId);
 }
 
@@ -145,7 +150,7 @@ function setTicketTranscriptChannel(guildId, channelId) {
   ensureGuildRow(guildId);
   const db = getDb();
   db.prepare(
-    "UPDATE guild_config SET ticket_transcript_channel_id = ? WHERE guild_id = ?"
+    "UPDATE guild_config SET ticket_transcript_channel_id = ? WHERE guild_id = ?",
   ).run(channelId, guildId);
 }
 
@@ -157,7 +162,7 @@ function addTicketSupportRole(guildId, roleId) {
   ids.push(roleId);
   const db = getDb();
   db.prepare(
-    "UPDATE guild_config SET ticket_support_role_ids = ? WHERE guild_id = ?"
+    "UPDATE guild_config SET ticket_support_role_ids = ? WHERE guild_id = ?",
   ).run(ids.join(","), guildId);
 }
 
@@ -165,11 +170,11 @@ function removeTicketSupportRole(guildId, roleId) {
   ensureGuildRow(guildId);
   const current = getConfig(guildId);
   const ids = (current?.ticket_support_role_ids || []).filter(
-    (id) => id !== roleId
+    (id) => id !== roleId,
   );
   const db = getDb();
   db.prepare(
-    "UPDATE guild_config SET ticket_support_role_ids = ? WHERE guild_id = ?"
+    "UPDATE guild_config SET ticket_support_role_ids = ? WHERE guild_id = ?",
   ).run(ids.length ? ids.join(",") : null, guildId);
 }
 
@@ -177,7 +182,7 @@ function setTicketRecipient(guildId, userId) {
   ensureGuildRow(guildId);
   const db = getDb();
   db.prepare(
-    "UPDATE guild_config SET ticket_recipient_id = ? WHERE guild_id = ?"
+    "UPDATE guild_config SET ticket_recipient_id = ? WHERE guild_id = ?",
   ).run(userId, guildId);
 }
 
@@ -189,17 +194,19 @@ function addTicketRecipient(guildId, userId) {
   ids.push(userId);
   const db = getDb();
   db.prepare(
-    "UPDATE guild_config SET ticket_recipient_id = ? WHERE guild_id = ?"
+    "UPDATE guild_config SET ticket_recipient_id = ? WHERE guild_id = ?",
   ).run(ids.join(","), guildId);
 }
 
 function removeTicketRecipient(guildId, userId) {
   ensureGuildRow(guildId);
   const current = getConfig(guildId);
-  const ids = (current?.ticket_support_user_ids || []).filter((id) => id !== userId);
+  const ids = (current?.ticket_support_user_ids || []).filter(
+    (id) => id !== userId,
+  );
   const db = getDb();
   db.prepare(
-    "UPDATE guild_config SET ticket_recipient_id = ? WHERE guild_id = ?"
+    "UPDATE guild_config SET ticket_recipient_id = ? WHERE guild_id = ?",
   ).run(ids.length ? ids.join(",") : null, guildId);
 }
 
@@ -211,7 +218,7 @@ function addCommandRole(guildId, roleId) {
   ids.push(roleId);
   const db = getDb();
   db.prepare(
-    "UPDATE guild_config SET command_role_ids = ? WHERE guild_id = ?"
+    "UPDATE guild_config SET command_role_ids = ? WHERE guild_id = ?",
   ).run(ids.join(","), guildId);
 }
 
@@ -221,7 +228,7 @@ function removeCommandRole(guildId, roleId) {
   const ids = (current?.command_role_ids || []).filter((id) => id !== roleId);
   const db = getDb();
   db.prepare(
-    "UPDATE guild_config SET command_role_ids = ? WHERE guild_id = ?"
+    "UPDATE guild_config SET command_role_ids = ? WHERE guild_id = ?",
   ).run(ids.length ? ids.join(",") : null, guildId);
 }
 
@@ -233,7 +240,7 @@ function addCommandUser(guildId, userId) {
   ids.push(userId);
   const db = getDb();
   db.prepare(
-    "UPDATE guild_config SET command_user_ids = ? WHERE guild_id = ?"
+    "UPDATE guild_config SET command_user_ids = ? WHERE guild_id = ?",
   ).run(ids.join(","), guildId);
 }
 
@@ -243,7 +250,7 @@ function removeCommandUser(guildId, userId) {
   const ids = (current?.command_user_ids || []).filter((id) => id !== userId);
   const db = getDb();
   db.prepare(
-    "UPDATE guild_config SET command_user_ids = ? WHERE guild_id = ?"
+    "UPDATE guild_config SET command_user_ids = ? WHERE guild_id = ?",
   ).run(ids.length ? ids.join(",") : null, guildId);
 }
 
@@ -270,7 +277,7 @@ function clearField(guildId, fieldKey) {
   ensureGuildRow(guildId);
   const db = getDb();
   db.prepare(`UPDATE guild_config SET ${column} = NULL WHERE guild_id = ?`).run(
-    guildId
+    guildId,
   );
   return true;
 }

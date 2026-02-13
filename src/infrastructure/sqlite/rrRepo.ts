@@ -33,7 +33,11 @@ export class SqliteRrRepo implements RrRepoPort {
     return rrRepo.listRulesByGuild(guildId);
   }
 
-  listRulesByMessageEmoji(guildId: string, messageId: string, emojiKey: string) {
+  listRulesByMessageEmoji(
+    guildId: string,
+    messageId: string,
+    emojiKey: string,
+  ) {
     return rrRepo.listRulesByMessageEmoji(guildId, messageId, emojiKey);
   }
 
@@ -49,7 +53,11 @@ export class SqliteRrRepo implements RrRepoPort {
     return rrRepo.deleteRulesByRole(guildId, messageId, roleId);
   }
 
-  deleteRulesMissingRoles(guildId: string, messageId: string, roleIds: string[]) {
+  deleteRulesMissingRoles(
+    guildId: string,
+    messageId: string,
+    roleIds: string[],
+  ) {
     return rrRepo.deleteRulesMissingRoles(guildId, messageId, roleIds);
   }
 }

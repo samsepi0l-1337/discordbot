@@ -21,16 +21,22 @@ const roleManager = new DiscordRoleManager();
 export const reactionRoleService = new ReactionRoleService(
   rrRepo,
   rrSettingsRepo,
-  roleManager
+  roleManager,
 );
 
-export const voiceRoleService = new VoiceRoleService(voiceRoleRepo, roleManager);
+export const voiceRoleService = new VoiceRoleService(
+  voiceRoleRepo,
+  roleManager,
+);
 
 export const onboardingService = new OnboardingService(
   autoroleRepo,
   timedRoleRepo,
   roleManager,
-  (fn, delayMs) => setTimeout(fn, delayMs)
+  (fn, delayMs) => setTimeout(fn, delayMs),
 );
 
-export const introRoleService = new IntroRoleService(guildConfigRepo, roleManager);
+export const introRoleService = new IntroRoleService(
+  guildConfigRepo,
+  roleManager,
+);

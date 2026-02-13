@@ -1,7 +1,7 @@
 export function parseTimeToMs(input: string): number | null {
   const trimmed = input.trim();
   const match = trimmed.match(
-    /^(\d+)\s*(d|day|days|h|hour|hours|m|minute|minutes|s|sec|secs|second|seconds)$/i
+    /^(\d+)\s*(d|day|days|h|hour|hours|m|minute|minutes|s|sec|secs|second|seconds)$/i,
   );
   if (!match) return null;
   const value = Number(match[1]);

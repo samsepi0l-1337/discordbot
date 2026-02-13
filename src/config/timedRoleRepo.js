@@ -8,7 +8,7 @@ function addTimedRole(guildId, roleId, delayMs) {
     VALUES (?, ?, ?)
     ON CONFLICT(guild_id, role_id) DO UPDATE SET
       delay_ms = excluded.delay_ms
-  `
+  `,
   ).run(guildId, roleId, delayMs);
 }
 
@@ -19,7 +19,7 @@ function removeTimedRole(guildId, roleId) {
       `
       DELETE FROM timed_roles
       WHERE guild_id = ? AND role_id = ?
-    `
+    `,
     )
     .run(guildId, roleId).changes;
 }
@@ -33,7 +33,7 @@ function listTimedRoles(guildId) {
       FROM timed_roles
       WHERE guild_id = ?
       ORDER BY delay_ms ASC
-    `
+    `,
     )
     .all(guildId);
 }

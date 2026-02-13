@@ -19,7 +19,8 @@ const TICKET_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 function getTicketRetentionMs() {
   const raw = Number.parseInt(process.env.TICKET_RETENTION_DAYS || "", 10);
-  const days = Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_TICKET_RETENTION_DAYS;
+  const days =
+    Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_TICKET_RETENTION_DAYS;
   return days * 24 * 60 * 60 * 1000;
 }
 
@@ -30,7 +31,7 @@ function startTicketCleanup() {
       const result = ticketService.purgeOldTickets(retentionMs);
       if (result.sessionsDeleted || result.forwardsDeleted) {
         console.log(
-          `[ticket-cleanup] sessions=${result.sessionsDeleted}, forwarded=${result.forwardsDeleted}`
+          `[ticket-cleanup] sessions=${result.sessionsDeleted}, forwarded=${result.forwardsDeleted}`,
         );
       }
     } catch (error) {
@@ -57,12 +58,17 @@ const client = new Client({
     GatewayIntentBits.DirectMessages,
     GatewayIntentBits.MessageContent,
   ],
-  partials: [Partials.Channel, Partials.Message, Partials.Reaction, Partials.User],
+  partials: [
+    Partials.Channel,
+    Partials.Message,
+    Partials.Reaction,
+    Partials.User,
+  ],
 });
 
 type CommandHandler = {
-  data?: { name: string; };
-  contextMenu?: { name: string; };
+  data?: { name: string };
+  contextMenu?: { name: string };
   execute: (interaction: any) => Promise<void>;
 };
 
@@ -90,7 +96,9 @@ async function registerCommandsOnStartup() {
   const token = process.env.DISCORD_TOKEN;
 
   if (!clientId || !token) {
-    console.error("[register] Missing CLIENT_ID or DISCORD_TOKEN. Skipping registration.");
+    console.error(
+      "[register] Missing CLIENT_ID or DISCORD_TOKEN. Skipping registration.",
+    );
     return;
   }
 
@@ -103,7 +111,9 @@ async function registerCommandsOnStartup() {
       });
       console.log(`[register] Registered guild commands for ${guildId}.`);
     } else {
-      await rest.put(Routes.applicationCommands(clientId), { body: commandData });
+      await rest.put(Routes.applicationCommands(clientId), {
+        body: commandData,
+      });
       console.log("[register] Registered global commands.");
     }
   } catch (error) {
@@ -121,8 +131,9 @@ for (const file of fs.readdirSync(eventsPath)) {
 
 client.on("interactionCreate", async (interaction: Interaction) => {
   if (interaction.isChatInputCommand() || interaction.isContextMenuCommand()) {
-    const commandName = interaction.isChatInputCommand()
-      ? interaction.commandName
+    const commandName =
+      interaction.isChatInputCommand() ?
+        interaction.commandName
       : (interaction as any).commandName;
     const command = commands.get(commandName);
     if (!command) return;
@@ -130,11 +141,18 @@ client.on("interactionCreate", async (interaction: Interaction) => {
       await command.execute(interaction);
     } catch (error) {
       console.error("Command error:", error);
-      const message = "명령 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.";
+      const message =
+        "명령 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.";
       if ((interaction as any).replied || (interaction as any).deferred) {
-        await (interaction as any).followUp({ content: message, flags: MessageFlags.Ephemeral });
+        await (interaction as any).followUp({
+          content: message,
+          flags: MessageFlags.Ephemeral,
+        });
       } else {
-        await (interaction as any).reply({ content: message, flags: MessageFlags.Ephemeral });
+        await (interaction as any).reply({
+          content: message,
+          flags: MessageFlags.Ephemeral,
+        });
       }
     }
     return;
@@ -200,9 +218,15 @@ client.on("interactionCreate", async (interaction: Interaction) => {
       const message = "티켓 생성에 실패했어요. 권한/설정을 확인해주세요.";
       try {
         if (interaction.replied || interaction.deferred) {
-          await interaction.followUp({ content: message, flags: MessageFlags.Ephemeral });
+          await interaction.followUp({
+            content: message,
+            flags: MessageFlags.Ephemeral,
+          });
         } else {
-          await interaction.reply({ content: message, flags: MessageFlags.Ephemeral });
+          await interaction.reply({
+            content: message,
+            flags: MessageFlags.Ephemeral,
+          });
         }
       } catch {
         // ignore (interaction may be expired/unknown)
@@ -216,7 +240,10 @@ client.on("interactionCreate", async (interaction: Interaction) => {
     return;
   }
 
-  if (interaction.customId === "ticket_claim" || interaction.customId === "ticket_unclaim") {
+  if (
+    interaction.customId === "ticket_claim" ||
+    interaction.customId === "ticket_unclaim"
+  ) {
     await ticketService.handleTicketClaimButton(interaction);
     return;
   }

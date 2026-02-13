@@ -6,7 +6,7 @@ function addAutorole(guildId, target, roleId) {
     `
     INSERT OR IGNORE INTO autoroles (guild_id, target, role_id)
     VALUES (?, ?, ?)
-  `
+  `,
   ).run(guildId, target, roleId);
 }
 
@@ -17,7 +17,7 @@ function removeAutorole(guildId, target, roleId) {
       `
       DELETE FROM autoroles
       WHERE guild_id = ? AND target = ? AND role_id = ?
-    `
+    `,
     )
     .run(guildId, target, roleId).changes;
 }
@@ -31,7 +31,7 @@ function listAutoroles(guildId) {
       FROM autoroles
       WHERE guild_id = ?
       ORDER BY target ASC, role_id ASC
-    `
+    `,
     )
     .all(guildId);
 }

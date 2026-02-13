@@ -26,8 +26,8 @@ export const TICKET_UNCLAIM_BUTTON_ID = "ticket_unclaim";
 export class TicketService {
   constructor(
     private readonly ticketRepo: TicketRepo,
-    private readonly configRepo: GuildConfigRepoPort
-  ) { }
+    private readonly configRepo: GuildConfigRepoPort,
+  ) {}
 
   private sanitizeFilenamePart(input: string) {
     const trimmed = String(input || "").trim();
@@ -44,7 +44,9 @@ export class TicketService {
   private async resolveUserLabel(interaction: Interaction, userId: string) {
     // Prefer a stable, readable label for filenames. Fall back to userId.
     try {
-      const member = await interaction.guild?.members.fetch(userId).catch(() => null);
+      const member = await interaction.guild?.members
+        .fetch(userId)
+        .catch(() => null);
       const name =
         member?.displayName ||
         member?.user?.username ||
@@ -55,7 +57,9 @@ export class TicketService {
       // ignore
     }
     try {
-      const user = await interaction.client.users.fetch(userId).catch(() => null);
+      const user = await interaction.client.users
+        .fetch(userId)
+        .catch(() => null);
       const name = user?.username || user?.tag || "";
       if (name) return this.sanitizeFilenamePart(name);
     } catch {
@@ -64,13 +68,19 @@ export class TicketService {
     return this.sanitizeFilenamePart(userId);
   }
 
-  private async notifyOpenerClaimed(interaction: Interaction, openerId: string, ticketId: number) {
+  private async notifyOpenerClaimed(
+    interaction: Interaction,
+    openerId: string,
+    ticketId: number,
+  ) {
     // Best-effort DM notification (DMs can be disabled/blocked).
     if (!interaction.inGuild()) return;
     if (interaction.user.id === openerId) return;
     const link = `https://discord.com/channels/${interaction.guildId}/${interaction.channelId}`;
     try {
-      const user = await interaction.client.users.fetch(openerId).catch(() => null);
+      const user = await interaction.client.users
+        .fetch(openerId)
+        .catch(() => null);
       if (!user) return;
       await user.send({
         content: [
@@ -110,7 +120,11 @@ export class TicketService {
     this.ticketRepo.touch(ticketId);
   }
 
-  closeTicketSession(ticketId: number, closedById?: string | null, reason?: string | null) {
+  closeTicketSession(
+    ticketId: number,
+    closedById?: string | null,
+    reason?: string | null,
+  ) {
     this.ticketRepo.close(ticketId, closedById, reason);
   }
 
@@ -129,27 +143,29 @@ export class TicketService {
   private async createTicketThread(
     interaction: Interaction,
     config: any,
-    title: string
+    title: string,
   ) {
     const panelChannelId = config?.ticket_channel_id;
     if (!panelChannelId) {
       throw new Error("ticket_channel_id not set");
     }
 
-    const panelChannel = await interaction.guild!.channels
-      .fetch(panelChannelId)
+    const panelChannel = await interaction
+      .guild!.channels.fetch(panelChannelId)
       .catch(() => null);
     if (!panelChannel?.isTextBased() || !("threads" in panelChannel)) {
       throw new Error("panel channel not found or not thread-capable");
     }
 
-    const safeUser = interaction.user.username
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, "-")
-      .slice(0, 20) || "user";
+    const safeUser =
+      interaction.user.username
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, "-")
+        .slice(0, 20) || "user";
 
     const cleanTitle = this.normalizeThreadTitle(title);
-    const threadName = cleanTitle ? `ticket-${cleanTitle}` : `ticket-${safeUser}`;
+    const threadName =
+      cleanTitle ? `ticket-${cleanTitle}` : `ticket-${safeUser}`;
 
     const thread = await panelChannel.threads.create({
       name: threadName.slice(0, 100),
@@ -173,7 +189,7 @@ export class TicketService {
     const ticketId = this.ticketRepo.createSession(
       interaction.guild!.id,
       interaction.user.id,
-      thread.id
+      thread.id,
     );
 
     const closeButton = new ButtonBuilder()
@@ -186,7 +202,7 @@ export class TicketService {
       .setStyle(ButtonStyle.Secondary);
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       claimButton,
-      closeButton
+      closeButton,
     );
 
     await thread.send({
@@ -248,7 +264,8 @@ export class TicketService {
     const hasSupportRoles = !!config?.ticket_support_role_ids?.length;
     if (!hasSupportUsers && !hasSupportRoles) {
       await interaction.reply({
-        content: "티켓 지원팀(역할/유저)이 설정되지 않았어요. 관리자에게 문의해주세요.",
+        content:
+          "티켓 지원팀(역할/유저)이 설정되지 않았어요. 관리자에게 문의해주세요.",
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -256,7 +273,7 @@ export class TicketService {
 
     const existing = this.ticketRepo.getLatestOpenByUser(
       interaction.guild!.id,
-      interaction.user.id
+      interaction.user.id,
     );
     if (existing?.channel_id) {
       await interaction.reply({
@@ -283,7 +300,10 @@ export class TicketService {
     }
   }
 
-  async handleTicketCreateModalSubmit(interaction: ModalSubmitInteraction, config: any) {
+  async handleTicketCreateModalSubmit(
+    interaction: ModalSubmitInteraction,
+    config: any,
+  ) {
     if (!interaction.inGuild()) {
       await interaction.reply({
         content: "이 작업은 서버에서만 사용할 수 있어요.",
@@ -306,7 +326,8 @@ export class TicketService {
     const hasSupportRoles = !!config?.ticket_support_role_ids?.length;
     if (!hasSupportUsers && !hasSupportRoles) {
       await interaction.editReply({
-        content: "티켓 지원팀(역할/유저)이 설정되지 않았어요. 관리자에게 문의해주세요.",
+        content:
+          "티켓 지원팀(역할/유저)이 설정되지 않았어요. 관리자에게 문의해주세요.",
       });
       return;
     }
@@ -314,7 +335,7 @@ export class TicketService {
     // Double-check duplicates (user can submit multiple times)
     const existing = this.ticketRepo.getLatestOpenByUser(
       interaction.guild!.id,
-      interaction.user.id
+      interaction.user.id,
     );
     if (existing?.channel_id) {
       await interaction.editReply({
@@ -323,7 +344,9 @@ export class TicketService {
       return;
     }
 
-    const title = interaction.fields.getTextInputValue(TICKET_CREATE_MODAL_TITLE_INPUT_ID);
+    const title = interaction.fields.getTextInputValue(
+      TICKET_CREATE_MODAL_TITLE_INPUT_ID,
+    );
     const cleanTitle = this.normalizeThreadTitle(title);
     if (!cleanTitle || cleanTitle.length < 2) {
       await interaction.editReply({
@@ -333,7 +356,11 @@ export class TicketService {
     }
 
     try {
-      const { threadId } = await this.createTicketThread(interaction, config, cleanTitle);
+      const { threadId } = await this.createTicketThread(
+        interaction,
+        config,
+        cleanTitle,
+      );
       await interaction.editReply({
         content: `티켓이 생성되었어요. <#${threadId}>`,
       });
@@ -351,7 +378,7 @@ export class TicketService {
     if (config?.ticket_support_user_ids?.includes(userId)) return true;
     if (!config?.ticket_support_role_ids?.length) return false;
     return member.roles?.cache?.some((role) =>
-      config.ticket_support_role_ids.includes(role.id)
+      config.ticket_support_role_ids.includes(role.id),
     );
   }
 
@@ -359,7 +386,9 @@ export class TicketService {
     // In Private Thread tickets, being a thread member == "in the ticket".
     if (!interaction.channel?.isThread?.()) return false;
     try {
-      const me = await interaction.channel.members.fetch(interaction.user.id).catch(() => null);
+      const me = await interaction.channel.members
+        .fetch(interaction.user.id)
+        .catch(() => null);
       return Boolean(me);
     } catch {
       return false;
@@ -367,25 +396,30 @@ export class TicketService {
   }
 
   private async buildTranscriptText(channel: TextBasedChannel) {
-    const messages = await channel.messages.fetch({ limit: 100 }).catch(() => null);
+    const messages = await channel.messages
+      .fetch({ limit: 100 })
+      .catch(() => null);
     if (!messages) return "Transcript fetch failed.";
     const lines: string[] = [];
     const sorted = [...messages.values()].sort(
-      (a, b) => a.createdTimestamp - b.createdTimestamp
+      (a, b) => a.createdTimestamp - b.createdTimestamp,
     );
     for (const msg of sorted) {
       const ts = new Date(msg.createdTimestamp).toISOString();
       const author = msg.author?.tag || "Unknown";
       const content = msg.content || "";
-      const attachments = msg.attachments?.size
-        ? ` attachments=${[...msg.attachments.values()].map((a) => a.url).join(" ")}`
+      const attachments =
+        msg.attachments?.size ?
+          ` attachments=${[...msg.attachments.values()].map((a) => a.url).join(" ")}`
         : "";
       lines.push(`[${ts}] ${author}: ${content}${attachments}`);
     }
     return lines.join("\n");
   }
 
-  private async ensureThreadUnarchived(channel: TextBasedChannel | null | undefined) {
+  private async ensureThreadUnarchived(
+    channel: TextBasedChannel | null | undefined,
+  ) {
     if (!channel?.isThread?.()) return;
     if (!channel.archived) return;
     try {
@@ -398,12 +432,14 @@ export class TicketService {
   async handleTicketCloseButton(interaction: Interaction) {
     if (!interaction.isButton()) return;
     try {
-      await this.ensureThreadUnarchived(interaction.channel as TextBasedChannel);
+      await this.ensureThreadUnarchived(
+        interaction.channel as TextBasedChannel,
+      );
 
       const guildId = interaction.guild!.id;
       const ticket = this.ticketRepo.getOpenByChannel(
         guildId,
-        interaction.channel!.id
+        interaction.channel!.id,
       );
       if (!ticket) {
         await interaction.reply({
@@ -446,12 +482,17 @@ export class TicketService {
       }
 
       if (config?.ticket_transcript_channel_id) {
-        const transcriptChannel = await interaction.guild!.channels
-          .fetch(config.ticket_transcript_channel_id)
+        const transcriptChannel = await interaction
+          .guild!.channels.fetch(config.ticket_transcript_channel_id)
           .catch(() => null);
         if (transcriptChannel?.isTextBased()) {
-          const text = await this.buildTranscriptText(interaction.channel as TextBasedChannel);
-          const openerLabel = await this.resolveUserLabel(interaction, ticket.opener_id);
+          const text = await this.buildTranscriptText(
+            interaction.channel as TextBasedChannel,
+          );
+          const openerLabel = await this.resolveUserLabel(
+            interaction,
+            ticket.opener_id,
+          );
           await transcriptChannel.send({
             content: `티켓 #${ticket.id} (생성자: <@${ticket.opener_id}> | ID: ${ticket.opener_id}) 트랜스크립트`,
             files: [
@@ -498,12 +539,14 @@ export class TicketService {
   async handleTicketClaimButton(interaction: Interaction) {
     if (!interaction.isButton()) return;
     try {
-      await this.ensureThreadUnarchived(interaction.channel as TextBasedChannel);
+      await this.ensureThreadUnarchived(
+        interaction.channel as TextBasedChannel,
+      );
 
       const guildId = interaction.guild!.id;
       const ticket = this.ticketRepo.getOpenByChannel(
         guildId,
-        interaction.channel!.id
+        interaction.channel!.id,
       );
       if (!ticket) {
         await interaction.reply({
@@ -525,7 +568,11 @@ export class TicketService {
 
       if (interaction.customId === TICKET_CLAIM_BUTTON_ID) {
         this.ticketRepo.setClaim(ticket.id, interaction.user.id);
-        await this.notifyOpenerClaimed(interaction, ticket.opener_id, ticket.id);
+        await this.notifyOpenerClaimed(
+          interaction,
+          ticket.opener_id,
+          ticket.id,
+        );
         const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
             .setCustomId(TICKET_UNCLAIM_BUTTON_ID)
@@ -534,7 +581,7 @@ export class TicketService {
           new ButtonBuilder()
             .setCustomId(TICKET_CLOSE_BUTTON_ID)
             .setLabel("닫기")
-            .setStyle(ButtonStyle.Danger)
+            .setStyle(ButtonStyle.Danger),
         );
         await interaction.message.edit({
           content: `이 티켓은 <@${interaction.user.id}>가 클레임했어요.`,
@@ -553,7 +600,7 @@ export class TicketService {
           new ButtonBuilder()
             .setCustomId(TICKET_CLOSE_BUTTON_ID)
             .setLabel("닫기")
-            .setStyle(ButtonStyle.Danger)
+            .setStyle(ButtonStyle.Danger),
         );
         await interaction.message.edit({
           content: "클레임이 해제되었어요.",
@@ -582,7 +629,8 @@ export class TicketService {
 
   purgeOldTickets(retentionMs: number) {
     const cutoff = Date.now() - retentionMs;
-    if (!Number.isFinite(cutoff)) return { sessionsDeleted: 0, forwardsDeleted: 0 };
+    if (!Number.isFinite(cutoff))
+      return { sessionsDeleted: 0, forwardsDeleted: 0 };
     const sessionsDeleted = this.ticketRepo.purgeClosedBefore(cutoff);
     return { sessionsDeleted, forwardsDeleted: 0 };
   }

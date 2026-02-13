@@ -33,27 +33,31 @@ function ensureGuildConfigColumns(dbInstance) {
     missing.push("ALTER TABLE guild_config ADD COLUMN intro_add_role_id TEXT");
   }
   if (!columns.includes("intro_remove_role_id")) {
-    missing.push("ALTER TABLE guild_config ADD COLUMN intro_remove_role_id TEXT");
+    missing.push(
+      "ALTER TABLE guild_config ADD COLUMN intro_remove_role_id TEXT",
+    );
   }
   if (!columns.includes("intro_role_mode")) {
     missing.push(
-      "ALTER TABLE guild_config ADD COLUMN intro_role_mode TEXT DEFAULT 'add'"
+      "ALTER TABLE guild_config ADD COLUMN intro_role_mode TEXT DEFAULT 'add'",
     );
   }
   if (!columns.includes("ticket_channel_id")) {
     missing.push("ALTER TABLE guild_config ADD COLUMN ticket_channel_id TEXT");
   }
   if (!columns.includes("ticket_recipient_id")) {
-    missing.push("ALTER TABLE guild_config ADD COLUMN ticket_recipient_id TEXT");
+    missing.push(
+      "ALTER TABLE guild_config ADD COLUMN ticket_recipient_id TEXT",
+    );
   }
   if (!columns.includes("grant_on_post_message_id")) {
     missing.push(
-      "ALTER TABLE guild_config ADD COLUMN grant_on_post_message_id TEXT"
+      "ALTER TABLE guild_config ADD COLUMN grant_on_post_message_id TEXT",
     );
   }
   if (!columns.includes("grant_on_post_emoji_map")) {
     missing.push(
-      "ALTER TABLE guild_config ADD COLUMN grant_on_post_emoji_map TEXT"
+      "ALTER TABLE guild_config ADD COLUMN grant_on_post_emoji_map TEXT",
     );
   }
   if (!columns.includes("command_role_ids")) {
@@ -67,17 +71,17 @@ function ensureGuildConfigColumns(dbInstance) {
   }
   if (!columns.includes("ticket_transcript_channel_id")) {
     missing.push(
-      "ALTER TABLE guild_config ADD COLUMN ticket_transcript_channel_id TEXT"
+      "ALTER TABLE guild_config ADD COLUMN ticket_transcript_channel_id TEXT",
     );
   }
   if (!columns.includes("ticket_support_role_ids")) {
     missing.push(
-      "ALTER TABLE guild_config ADD COLUMN ticket_support_role_ids TEXT"
+      "ALTER TABLE guild_config ADD COLUMN ticket_support_role_ids TEXT",
     );
   }
   if (!columns.includes("ticket_panel_message_id")) {
     missing.push(
-      "ALTER TABLE guild_config ADD COLUMN ticket_panel_message_id TEXT"
+      "ALTER TABLE guild_config ADD COLUMN ticket_panel_message_id TEXT",
     );
   }
   for (const statement of missing) {

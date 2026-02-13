@@ -15,7 +15,12 @@ export type GuildConfig = {
 
 export interface GuildConfigRepoPort {
   getConfig(guildId: string): GuildConfig | null;
-  setIntro(guildId: string, channelId: string, roleId: string, mode?: "add" | "remove"): void;
+  setIntro(
+    guildId: string,
+    channelId: string,
+    roleId: string,
+    mode?: "add" | "remove",
+  ): void;
   setTicketChannel(guildId: string, channelId: string): void;
   setTicketPanelMessage(guildId: string, messageId: string): void;
   setTicketCategory(guildId: string, categoryId: string): void;

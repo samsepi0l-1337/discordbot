@@ -11,14 +11,16 @@ export type IntroMessageInput<Member> = {
 export class IntroRoleService<Member> {
   constructor(
     private readonly configRepo: GuildConfigRepoPort,
-    private readonly roleManager: RoleManagerPort<Member>
-  ) { }
+    private readonly roleManager: RoleManagerPort<Member>,
+  ) {}
 
   async handleIntroMessage(input: IntroMessageInput<Member>) {
     const config = this.configRepo.getConfig(input.guildId);
     if (!config?.intro_channel_id) return;
     if (config.intro_channel_id !== input.channelId) return;
-    const hasAnyRole = Boolean(config.intro_add_role_id || config.intro_remove_role_id);
+    const hasAnyRole = Boolean(
+      config.intro_add_role_id || config.intro_remove_role_id,
+    );
     if (!hasAnyRole) return;
 
     // UX: react to intro message with a check mark.
@@ -36,14 +38,14 @@ export class IntroRoleService<Member> {
       await this.roleManager.removeRole(
         input.member,
         config.intro_remove_role_id,
-        "intro-role-remove"
+        "intro-role-remove",
       );
     }
     if (config.intro_add_role_id) {
       await this.roleManager.assignRole(
         input.member,
         config.intro_add_role_id,
-        "intro-role-add"
+        "intro-role-add",
       );
     }
   }

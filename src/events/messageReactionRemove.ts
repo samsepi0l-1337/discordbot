@@ -28,7 +28,10 @@ module.exports = {
     const message = reaction.message;
     if (!message?.guild) return;
 
-    const emojiKey = emojiKeyFromReaction(reaction.emoji?.id, reaction.emoji?.name);
+    const emojiKey = emojiKeyFromReaction(
+      reaction.emoji?.id,
+      reaction.emoji?.name,
+    );
     if (!emojiKey) return;
 
     const member = await resolveMember(reaction, user);

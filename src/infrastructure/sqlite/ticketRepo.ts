@@ -1,4 +1,7 @@
-import type { TicketRepo, TicketSession } from "../../application/ports/ticketRepo";
+import type {
+  TicketRepo,
+  TicketSession,
+} from "../../application/ports/ticketRepo";
 import { getDb } from "../../config/db";
 
 export class SqliteTicketRepo implements TicketRepo {
@@ -10,7 +13,7 @@ export class SqliteTicketRepo implements TicketRepo {
         `
         INSERT INTO ticket_sessions (guild_id, opener_id, channel_id, status, created_at, updated_at)
         VALUES (?, ?, ?, 'open', ?, ?)
-      `
+      `,
       )
       .run(guildId, openerId, channelId, now, now);
     return Number(info.lastInsertRowid);
@@ -26,7 +29,7 @@ export class SqliteTicketRepo implements TicketRepo {
         WHERE guild_id = ? AND opener_id = ? AND status = 'open'
         ORDER BY created_at DESC
         LIMIT 1
-      `
+      `,
       )
       .get(guildId, openerId) as TicketSession | undefined;
   }
@@ -39,7 +42,7 @@ export class SqliteTicketRepo implements TicketRepo {
         SELECT *
         FROM ticket_sessions
         WHERE id = ?
-      `
+      `,
       )
       .get(ticketId) as TicketSession | undefined;
   }
@@ -54,7 +57,7 @@ export class SqliteTicketRepo implements TicketRepo {
         WHERE guild_id = ? AND channel_id = ? AND status = 'open'
         ORDER BY created_at DESC
         LIMIT 1
-      `
+      `,
       )
       .get(guildId, channelId) as TicketSession | undefined;
   }
@@ -63,7 +66,7 @@ export class SqliteTicketRepo implements TicketRepo {
     const db = getDb();
     db.prepare("UPDATE ticket_sessions SET updated_at = ? WHERE id = ?").run(
       Date.now(),
-      ticketId
+      ticketId,
     );
   }
 
@@ -78,7 +81,7 @@ export class SqliteTicketRepo implements TicketRepo {
           closed_at = ?,
           updated_at = ?
       WHERE id = ?
-    `
+    `,
     ).run(closedById || null, reason || null, Date.now(), Date.now(), ticketId);
   }
 
@@ -90,7 +93,7 @@ export class SqliteTicketRepo implements TicketRepo {
       SET claimed_by_id = ?,
           updated_at = ?
       WHERE id = ?
-    `
+    `,
     ).run(claimedById || null, Date.now(), ticketId);
   }
 
@@ -101,7 +104,7 @@ export class SqliteTicketRepo implements TicketRepo {
         `
         DELETE FROM ticket_sessions
         WHERE status = 'closed' AND updated_at < ?
-      `
+      `,
       )
       .run(timestampMs);
     return deleteSessions.changes || 0;

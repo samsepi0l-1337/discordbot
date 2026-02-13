@@ -11,7 +11,7 @@ export type VoiceUpdateInput<Member> = {
 export class VoiceRoleService<Member> {
   constructor(
     private readonly voiceRepo: VoiceRoleRepoPort,
-    private readonly roleManager: RoleManagerPort<Member>
+    private readonly roleManager: RoleManagerPort<Member>,
   ) {}
 
   async handleVoiceStateUpdate(input: VoiceUpdateInput<Member>) {
@@ -19,16 +19,30 @@ export class VoiceRoleService<Member> {
     if (beforeChannelId === afterChannelId) return;
 
     if (beforeChannelId) {
-      const roleMappings = this.voiceRepo.listByChannel(input.guildId, beforeChannelId);
+      const roleMappings = this.voiceRepo.listByChannel(
+        input.guildId,
+        beforeChannelId,
+      );
       for (const mapping of roleMappings) {
-        await this.roleManager.removeRole(input.member, mapping.role_id, "voice-leave");
+        await this.roleManager.removeRole(
+          input.member,
+          mapping.role_id,
+          "voice-leave",
+        );
       }
     }
 
     if (afterChannelId) {
-      const roleMappings = this.voiceRepo.listByChannel(input.guildId, afterChannelId);
+      const roleMappings = this.voiceRepo.listByChannel(
+        input.guildId,
+        afterChannelId,
+      );
       for (const mapping of roleMappings) {
-        await this.roleManager.assignRole(input.member, mapping.role_id, "voice-join");
+        await this.roleManager.assignRole(
+          input.member,
+          mapping.role_id,
+          "voice-join",
+        );
       }
     }
   }

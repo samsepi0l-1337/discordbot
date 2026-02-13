@@ -16,7 +16,11 @@ import {
   resetConfig,
 } from "../config/guildConfigRepo";
 import { canManageCommands } from "../core/permissions";
-import { formatChannel, formatRole, formatUser } from "../core/formatters/mentions";
+import {
+  formatChannel,
+  formatRole,
+  formatUser,
+} from "../core/formatters/mentions";
 
 function formatRoles(ids?: string[] | null) {
   if (!ids?.length) return "미설정";
@@ -45,10 +49,10 @@ module.exports = {
             .setName("channel")
             .setDescription("자기소개 채널")
             .setRequired(true)
-            .addChannelTypes(ChannelType.GuildText)
+            .addChannelTypes(ChannelType.GuildText),
         )
         .addRoleOption((option) =>
-          option.setName("role").setDescription("역할").setRequired(true)
+          option.setName("role").setDescription("역할").setRequired(true),
         )
         .addStringOption((option) =>
           option
@@ -57,43 +61,45 @@ module.exports = {
             .setRequired(false)
             .addChoices(
               { name: "add (역할 부여)", value: "add" },
-              { name: "remove (역할 제거)", value: "remove" }
-            )
-        )
+              { name: "remove (역할 제거)", value: "remove" },
+            ),
+        ),
     )
     .addSubcommand((sub) =>
       sub
         .setName("allow-command-role")
         .setDescription("봇 커맨드 사용 허용 역할 추가")
         .addRoleOption((option) =>
-          option.setName("role").setDescription("허용 역할").setRequired(true)
-        )
+          option.setName("role").setDescription("허용 역할").setRequired(true),
+        ),
     )
     .addSubcommand((sub) =>
       sub
         .setName("remove-command-role")
         .setDescription("봇 커맨드 사용 허용 역할 제거")
         .addRoleOption((option) =>
-          option.setName("role").setDescription("허용 역할").setRequired(true)
-        )
+          option.setName("role").setDescription("허용 역할").setRequired(true),
+        ),
     )
     .addSubcommand((sub) =>
       sub
         .setName("allow-command-user")
         .setDescription("봇 커맨드 사용 허용 유저 추가")
         .addUserOption((option) =>
-          option.setName("user").setDescription("허용 유저").setRequired(true)
-        )
+          option.setName("user").setDescription("허용 유저").setRequired(true),
+        ),
     )
     .addSubcommand((sub) =>
       sub
         .setName("remove-command-user")
         .setDescription("봇 커맨드 사용 허용 유저 제거")
         .addUserOption((option) =>
-          option.setName("user").setDescription("허용 유저").setRequired(true)
-        )
+          option.setName("user").setDescription("허용 유저").setRequired(true),
+        ),
     )
-    .addSubcommand((sub) => sub.setName("show").setDescription("현재 설정 보기"))
+    .addSubcommand((sub) =>
+      sub.setName("show").setDescription("현재 설정 보기"),
+    )
     .addSubcommand((sub) =>
       sub
         .setName("clear")
@@ -108,11 +114,13 @@ module.exports = {
               { name: "intro_add_role", value: "intro_add_role" },
               { name: "intro_remove_role", value: "intro_remove_role" },
               { name: "command_roles", value: "command_roles" },
-              { name: "command_users", value: "command_users" }
-            )
-        )
+              { name: "command_users", value: "command_users" },
+            ),
+        ),
     )
-    .addSubcommand((sub) => sub.setName("reset").setDescription("모든 설정 초기화")),
+    .addSubcommand((sub) =>
+      sub.setName("reset").setDescription("모든 설정 초기화"),
+    ),
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.inGuild()) {
@@ -127,17 +135,18 @@ module.exports = {
     const guildId = guild.id;
     const config = getConfig(guildId);
     const hasAdmin = interaction.memberPermissions?.has(
-      PermissionsBitField.Flags.ManageGuild
+      PermissionsBitField.Flags.ManageGuild,
     );
     const allowed = canManageCommands(
       interaction.member as never,
       interaction.user.id,
       config || {},
-      Boolean(hasAdmin)
+      Boolean(hasAdmin),
     );
     if (!allowed) {
       await interaction.reply({
-        content: "이 명령을 사용하려면 서버 관리 권한 또는 허용된 역할이 필요해요.",
+        content:
+          "이 명령을 사용하려면 서버 관리 권한 또는 허용된 역할이 필요해요.",
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -148,11 +157,14 @@ module.exports = {
     if (sub === "set-intro") {
       const channel = interaction.options.getChannel("channel", true);
       const role = interaction.options.getRole("role", true);
-      const mode = interaction.options.getString("mode") as "add" | "remove" | null;
+      const mode = interaction.options.getString("mode") as
+        | "add"
+        | "remove"
+        | null;
       setIntro(guildId, channel.id, role.id, mode || "add");
       await interaction.reply({
         content: `자기소개 채널 ${formatChannel(channel.id)}, 역할 ${formatRole(
-          role.id
+          role.id,
         )}, mode=${mode || "add"} 로 설정했어요.`,
         flags: MessageFlags.Ephemeral,
       });

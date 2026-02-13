@@ -14,10 +14,20 @@ export type TicketSession = {
 
 export interface TicketRepo {
   createSession(guildId: string, openerId: string, channelId: string): number;
-  getLatestOpenByUser(guildId: string, openerId: string): TicketSession | undefined;
+  getLatestOpenByUser(
+    guildId: string,
+    openerId: string,
+  ): TicketSession | undefined;
   getById(ticketId: number): TicketSession | undefined;
-  getOpenByChannel(guildId: string, channelId: string): TicketSession | undefined;
-  close(ticketId: number, closedById?: string | null, reason?: string | null): void;
+  getOpenByChannel(
+    guildId: string,
+    channelId: string,
+  ): TicketSession | undefined;
+  close(
+    ticketId: number,
+    closedById?: string | null,
+    reason?: string | null,
+  ): void;
   touch(ticketId: number): void;
   setClaim(ticketId: number, claimedById?: string | null): void;
   purgeClosedBefore(timestampMs: number): number;

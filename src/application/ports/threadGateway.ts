@@ -14,9 +14,12 @@ export interface ThreadGatewayPort {
   sendMessage(
     threadId: string,
     content: string,
-    components?: unknown[]
+    components?: unknown[],
   ): Promise<void>;
-  fetchThreadMessages(threadId: string, limit: number): Promise<
+  fetchThreadMessages(
+    threadId: string,
+    limit: number,
+  ): Promise<
     {
       id: string;
       createdTimestamp: number;
@@ -29,6 +32,6 @@ export interface ThreadGatewayPort {
     channelId: string,
     content: string,
     filename: string,
-    description?: string
+    description?: string,
   ): Promise<void>;
 }

@@ -25,18 +25,21 @@ export class ReactionRoleService<Member> {
   constructor(
     private readonly rrRepo: RrRepoPort,
     private readonly rrSettings: RrSettingsRepoPort,
-    private readonly roleManager: RoleManagerPort<Member>
+    private readonly roleManager: RoleManagerPort<Member>,
   ) {}
 
   async handleReactionAdd(input: ReactionAddInput<Member>) {
     const rules = this.rrRepo.listRulesByMessageEmoji(
       input.guildId,
       input.messageId,
-      input.emojiKey
+      input.emojiKey,
     );
     if (!rules.length) return;
 
-    const allRules = this.rrRepo.listRulesByMessage(input.guildId, input.messageId);
+    const allRules = this.rrRepo.listRulesByMessage(
+      input.guildId,
+      input.messageId,
+    );
     const dmEnabled = this.rrSettings.getDmEnabled(input.guildId);
     const dmLines: string[] = [];
 
@@ -44,23 +47,29 @@ export class ReactionRoleService<Member> {
       if (rule.type === "toggle") {
         const group = rule.toggle_group || "default";
         const groupRules = allRules.filter(
-          (item) => item.type === "toggle" && (item.toggle_group || "default") === group
+          (item) =>
+            item.type === "toggle" &&
+            (item.toggle_group || "default") === group,
         );
         for (const other of groupRules) {
           if (other.role_id !== rule.role_id) {
             await this.roleManager.removeRole(
               input.member,
               other.role_id,
-              "rr-toggle-remove"
+              "rr-toggle-remove",
             );
           }
         }
       }
 
       if (rule.type === "remove") {
-        await this.roleManager.removeRole(input.member, rule.role_id, "rr-remove");
+        await this.roleManager.removeRole(
+          input.member,
+          rule.role_id,
+          "rr-remove",
+        );
         dmLines.push(
-          `역할 제거: ${formatEmojiKey(rule.emoji_key)} → <@&${rule.role_id}>`
+          `역할 제거: ${formatEmojiKey(rule.emoji_key)} → <@&${rule.role_id}>`,
         );
         continue;
       }
@@ -68,10 +77,10 @@ export class ReactionRoleService<Member> {
       await this.roleManager.assignRole(
         input.member,
         rule.role_id,
-        `rr-${rule.type}`
+        `rr-${rule.type}`,
       );
       dmLines.push(
-        `역할 부여: ${formatEmojiKey(rule.emoji_key)} → <@&${rule.role_id}>`
+        `역할 부여: ${formatEmojiKey(rule.emoji_key)} → <@&${rule.role_id}>`,
       );
 
       if (rule.type === "once") {
@@ -92,7 +101,7 @@ export class ReactionRoleService<Member> {
     const rules = this.rrRepo.listRulesByMessageEmoji(
       input.guildId,
       input.messageId,
-      input.emojiKey
+      input.emojiKey,
     );
     if (!rules.length) return;
 
@@ -101,9 +110,13 @@ export class ReactionRoleService<Member> {
 
     for (const rule of rules) {
       if (rule.type !== "normal" && rule.type !== "toggle") continue;
-      await this.roleManager.removeRole(input.member, rule.role_id, "rr-remove-reaction");
+      await this.roleManager.removeRole(
+        input.member,
+        rule.role_id,
+        "rr-remove-reaction",
+      );
       dmLines.push(
-        `역할 제거: ${formatEmojiKey(rule.emoji_key)} → <@&${rule.role_id}>`
+        `역할 제거: ${formatEmojiKey(rule.emoji_key)} → <@&${rule.role_id}>`,
       );
     }
 

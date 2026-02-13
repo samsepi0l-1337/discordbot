@@ -9,7 +9,7 @@ function setActiveMessage(guildId, channelId, messageId) {
     ON CONFLICT(guild_id) DO UPDATE SET
       channel_id = excluded.channel_id,
       message_id = excluded.message_id
-  `
+  `,
   ).run(guildId, channelId, messageId);
 }
 
@@ -21,7 +21,7 @@ function getActiveMessage(guildId) {
       SELECT guild_id, channel_id, message_id
       FROM rr_active_message
       WHERE guild_id = ?
-    `
+    `,
     )
     .get(guildId);
 }
@@ -39,7 +39,7 @@ function addRule(rule) {
     INSERT OR IGNORE INTO rr_rules
       (guild_id, message_id, emoji_key, role_id, type, toggle_group, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?)
-  `
+  `,
   ).run(
     rule.guildId,
     rule.messageId,
@@ -47,7 +47,7 @@ function addRule(rule) {
     rule.roleId,
     rule.type,
     rule.toggleGroup || "",
-    now
+    now,
   );
 }
 
@@ -60,7 +60,7 @@ function listRulesByMessage(guildId, messageId) {
       FROM rr_rules
       WHERE guild_id = ? AND message_id = ?
       ORDER BY created_at ASC
-    `
+    `,
     )
     .all(guildId, messageId);
 }
@@ -74,7 +74,7 @@ function listRulesByGuild(guildId) {
       FROM rr_rules
       WHERE guild_id = ?
       ORDER BY message_id ASC, created_at ASC
-    `
+    `,
     )
     .all(guildId);
 }
@@ -88,7 +88,7 @@ function listRulesByMessageEmoji(guildId, messageId, emojiKey) {
       FROM rr_rules
       WHERE guild_id = ? AND message_id = ? AND emoji_key = ?
       ORDER BY created_at ASC
-    `
+    `,
     )
     .all(guildId, messageId, emojiKey);
 }
@@ -100,7 +100,7 @@ function deleteRulesByMessage(guildId, messageId) {
       `
       DELETE FROM rr_rules
       WHERE guild_id = ? AND message_id = ?
-    `
+    `,
     )
     .run(guildId, messageId).changes;
 }
@@ -112,7 +112,7 @@ function deleteRulesByEmoji(guildId, messageId, emojiKey) {
       `
       DELETE FROM rr_rules
       WHERE guild_id = ? AND message_id = ? AND emoji_key = ?
-    `
+    `,
     )
     .run(guildId, messageId, emojiKey).changes;
 }
@@ -124,7 +124,7 @@ function deleteRulesByRole(guildId, messageId, roleId) {
       `
       DELETE FROM rr_rules
       WHERE guild_id = ? AND message_id = ? AND role_id = ?
-    `
+    `,
     )
     .run(guildId, messageId, roleId).changes;
 }
@@ -132,8 +132,9 @@ function deleteRulesByRole(guildId, messageId, roleId) {
 function deleteRulesMissingRoles(guildId, messageId, roleIds) {
   const db = getDb();
   const placeholders = roleIds.map(() => "?").join(", ");
-  const query = placeholders.length
-    ? `
+  const query =
+    placeholders.length ?
+      `
       DELETE FROM rr_rules
       WHERE guild_id = ? AND message_id = ? AND role_id NOT IN (${placeholders})
     `
